@@ -5,12 +5,12 @@
   "description": "Some tools for VRChat avatar creation to help you speed up your workflow.",
   "gitDependencies": {},
   "vpmDependencies": {
-    "com.vrchat.avatars": "3.6.2-constraints.2"
+    "com.vrchat.avatars": "3.6.1"
   },
   "author": {
     "name": "GabSith",
     "email": "support@gabsith.com",
-    "url": "gabsith.com"
+    "url": "wft.gabsith.com"
   },
   "legacyFolders": {},
   "legacyFiles": {},
