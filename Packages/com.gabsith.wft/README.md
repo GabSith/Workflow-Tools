@@ -1,1 +1,1 @@
-# com.gabsith.wft by Gab
+# [Docs](https://wft.gabsith.com/)
