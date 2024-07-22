@@ -1,0 +1,18 @@
+{
+  "name": "com.gabsith.wft",
+  "displayName": "Workflow Tools",
+  "version": "2.0.0",
+  "description": "Some tools for VRChat avatar creation to help you speed up your workflow.",
+  "gitDependencies": {},
+  "vpmDependencies": {
+    "com.vrchat.avatars": "3.6.2-constraints.2"
+  },
+  "author": {
+    "name": "GabSith",
+    "email": "support@gabsith.com",
+    "url": "gabsith.com"
+  },
+  "legacyFolders": {},
+  "legacyFiles": {},
+  "localPath": "D:\\Unity\\VRChat\\Avatars\\Tests3\\Packages\\com.gabsith.wft"
+}

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: c0a3bb534686d4e4e9d1d3d11d711885
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - m_ViewDataDictionary: {instanceID: 0}
+  - proxy: {fileID: 7400000, guid: 4a62af89f565fb44899e62c935b1b748, type: 2}
+  - templateHueShift: {fileID: 7400000, guid: 236b86b0fed2a6e46958cd27b3279267, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
