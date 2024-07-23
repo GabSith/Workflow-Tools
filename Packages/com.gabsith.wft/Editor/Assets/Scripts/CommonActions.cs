@@ -16,7 +16,7 @@ namespace GabSith.WFT
         public static void GenerateTitle(string name)
         {
             Color tempColor = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(1, 0.9f, 0.9f, 1f);
+            GUI.backgroundColor = new Color(0.95f, 0.9f, 0.9f, 1f);
             EditorGUILayout.BeginVertical(GUI.skin.window, GUILayout.MaxHeight(25));
             GUI.backgroundColor = tempColor;
 
@@ -155,14 +155,14 @@ namespace GabSith.WFT
             Array.Reverse(avatarDescriptorsFromScene);
         }
 
-        public static bool SelectFolder(string LocalUseGlobalKey, string LocalFolderKey)
+        public static bool SelectFolder(string LocalUseGlobalKey, string LocalFolderKey, string LocalSuffixKey, ref string suffix)
         {
             bool changed = false;
             //string defaultPath = "Assets/WF Tools - GabSith/Generated";
             string globalFolderKey = "GlobalFolderKey";
 
 
-        EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.BeginHorizontal();
 
             // Use a button to select the folder path 
             if (GUILayout.Button("Select Folder"))
@@ -213,11 +213,83 @@ namespace GabSith.WFT
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Selected Folder: " + CommonActions.GetFolder(LocalUseGlobalKey, LocalFolderKey), pathLabelStyle);
-            //suffix = EditorGUILayout.TextField("", suffix, GUILayout.MaxWidth(100f));
+            // Suffix
+            EditorGUILayout.LabelField("/", GUILayout.Width(7f));
+            EditorGUI.BeginChangeCheck();
+            suffix = EditorGUILayout.TextField("", suffix, GUILayout.MaxWidth(100f));
+            if (EditorGUI.EndChangeCheck())
+            {
+                ProjectSettingsManager.SetString(LocalSuffixKey, suffix);
+                changed = true;
+            }
             EditorGUILayout.EndHorizontal();
 
             return changed;
         }
+
+
+        public static bool SelectFolder(string LocalUseGlobalKey, string LocalFolderKey)
+        {
+            bool changed = false;
+            //string defaultPath = "Assets/WF Tools - GabSith/Generated";
+            string globalFolderKey = "GlobalFolderKey";
+
+
+            EditorGUILayout.BeginHorizontal();
+
+            // Use a button to select the folder path 
+            if (GUILayout.Button("Select Folder"))
+            {
+                string tempPath = CommonActions.GetFolder(LocalUseGlobalKey, LocalFolderKey);
+                string folderPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets/", "");
+
+                if (string.IsNullOrEmpty(folderPath))
+                {
+                    folderPath = tempPath;
+                }
+
+                int index = folderPath.IndexOf("Assets/");
+
+                folderPath = folderPath.Substring(index);
+
+                if (ProjectSettingsManager.GetBool(LocalUseGlobalKey, true))
+                    ProjectSettingsManager.SetString(globalFolderKey, folderPath);
+                else
+                    ProjectSettingsManager.SetString(LocalFolderKey, folderPath);
+
+                changed = true;
+            }
+
+            // Global Folder
+            Color def = GUI.backgroundColor;
+            if (ProjectSettingsManager.GetBool(LocalUseGlobalKey, true))
+            {
+                GUI.backgroundColor = new Color { r = 0.5f, g = 1f, b = 0.5f, a = 1 };
+            }
+            if (GUILayout.Button("Use Global", GUILayout.Width(100f)))
+            {
+                //useGlobal = !useGlobal;
+                ProjectSettingsManager.SetBool(LocalUseGlobalKey, !ProjectSettingsManager.GetBool(LocalUseGlobalKey, true));
+                changed = true;
+            }
+            GUI.backgroundColor = def;
+
+            EditorGUILayout.EndHorizontal();
+
+
+            GUI.enabled = true;
+
+            GUIStyle pathLabelStyle = new GUIStyle(EditorStyles.label)
+            {
+                wordWrap = true
+            };
+
+            EditorGUILayout.LabelField("Selected Folder: " + CommonActions.GetFolder(LocalUseGlobalKey, LocalFolderKey), pathLabelStyle);
+
+            return changed;
+        }
+
+
 
         public static string GetFolder(string LocalUseGlobalKey, string localFolderKey)
         {

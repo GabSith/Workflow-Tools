@@ -51,7 +51,9 @@ namespace GabSith.WFT
 
         private const string InitialSetupFolderKey = "InitialSetupFolderKey";
         private const string InitialSetupUseGlobalKey = "InitialSetupUseGlobalKey";
-        //private const string GlobalFolderKey = "GlobalFolderKey";
+        private const string InitialSetupFolderSuffixKey = "InitialSetupFolderSuffixKey";
+        string suffix;
+
 
         //private string defaultPath = "Assets/WF Tools - GabSith/Generated";
         //private string folderPath = "Assets/WF Tools - GabSith/Generated";
@@ -82,6 +84,9 @@ namespace GabSith.WFT
                     avatar = avatarDescriptorsFromScene[0].gameObject;
                 }
             }
+
+            suffix = ProjectSettingsManager.GetString(InitialSetupFolderSuffixKey);
+
 
 
         }
@@ -402,7 +407,7 @@ namespace GabSith.WFT
             EditorGUILayout.EndHorizontal();
             */
 
-            CommonActions.SelectFolder(InitialSetupUseGlobalKey, InitialSetupFolderKey);
+            CommonActions.SelectFolder(InitialSetupUseGlobalKey, InitialSetupFolderKey, InitialSetupFolderSuffixKey, ref suffix);
 
 
 
@@ -472,17 +477,6 @@ namespace GabSith.WFT
                     Debug.Log(animator.hideFlags);
                     Debug.Log(animator.GetHashCode());
                 }
-
-
-
-
-                /*
-                if (GUILayout.Button("Test Path To Object"))
-                {
-                    //Debug.Log(VRC.Core.ExtensionMethods.GetHierarchyPath(gameObject.transform, avatarDescriptor.transform));
-
-                    Debug.Log(GetPathToObject(gameObject.transform));
-                }*/
             }
 
 
@@ -541,6 +535,8 @@ namespace GabSith.WFT
 
             MakeSureItDoesTheThing(animatorController);
 
+            EditorGUIUtility.PingObject(animatorController);
+
             return animatorController;
         }
 
@@ -554,6 +550,8 @@ namespace GabSith.WFT
             AssetDatabase.CreateAsset(expressionsMenu, GetFolder() + "/" + name + ".asset");
 
             MakeSureItDoesTheThing(expressionsMenu);
+            EditorGUIUtility.PingObject(expressionsMenu);
+
 
             return expressionsMenu;
         }
@@ -571,6 +569,9 @@ namespace GabSith.WFT
             AssetDatabase.CreateAsset(expressionParameters, GetFolder() + "/" + name + ".asset");
 
             MakeSureItDoesTheThing(expressionParameters);
+
+            EditorGUIUtility.PingObject(expressionParameters);
+
 
             return expressionParameters;
         }
@@ -625,7 +626,7 @@ namespace GabSith.WFT
 
         private string GetFolder()
         {
-            return CommonActions.GetFolder(InitialSetupUseGlobalKey, InitialSetupFolderKey);
+            return CommonActions.GetFolder(InitialSetupUseGlobalKey, InitialSetupFolderKey) + "/" + suffix;
         }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)

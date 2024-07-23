@@ -36,8 +36,9 @@ namespace GabSith.WFT
 
         private const string MaterialEditorFolderKey = "MaterialEditorFolderKey";
         private const string MaterialEditorUseGlobalKey = "MaterialEditorUseGlobalKey";
-        private const string GlobalFolderKey = "GlobalFolderKey";
-        //bool useGlobal;
+        private const string MaterialEditorFolderSuffixKey = "MaterialEditorFolderSuffixKey";
+        string suffix;
+
 
         Color defaultColor;
         Color highlightHide = new Color(0.7f, 0.5f, 0.5f, 0.8f);
@@ -57,6 +58,8 @@ namespace GabSith.WFT
         private void OnEnable()
         {
             CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
+            suffix = ProjectSettingsManager.GetString(MaterialEditorFolderSuffixKey);
+
         }
 
 
@@ -251,7 +254,7 @@ namespace GabSith.WFT
 
                 EditorGUILayout.Space();
 
-                CommonActions.SelectFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey);
+                CommonActions.SelectFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey, MaterialEditorFolderSuffixKey, ref suffix);
 
                 EditorGUILayout.Space(10);
                 if (GUILayout.Button("Create Materials", new GUIStyle(GUI.skin.button) { fixedHeight = 35, fontSize = 13 }))
@@ -296,8 +299,8 @@ namespace GabSith.WFT
                 {
                     if (item.sharedMaterials[i].shader != shader)
                     {
-                        string path = CommonActions.GetFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey) + "/" + item.sharedMaterials[i].name + " " + mode + ".mat";
-                        Directory.CreateDirectory(CommonActions.GetFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey));
+                        string path = GetFolder() + "/" + item.sharedMaterials[i].name + " " + mode + ".mat";
+                        Directory.CreateDirectory(GetFolder());
                         AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(item.sharedMaterials[i]), path);
                         //AssetDatabase.CreateAsset(item.sharedMaterials[i], path);
                         AssetDatabase.ImportAsset(path);
@@ -318,6 +321,10 @@ namespace GabSith.WFT
             }
         }
 
+        string GetFolder()
+        {
+            return CommonActions.GetFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey) + "/" + suffix;
+        }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)
         {

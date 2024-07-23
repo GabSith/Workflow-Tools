@@ -67,11 +67,10 @@ namespace GabSith.WFT
 
 
         private const string MenuControlFolderKey = "MenuControlFolderKey";
-
-        //private const string GlobalFolderKey = "GlobalFolderKey";
-
         private const string MenuControlUseGlobalKey = "MenuControlUseGlobalKey";
-        //bool useGlobal = true;
+        private const string MenuControlFolderSuffixKey = "MenuControlFolderSuffixKey";
+        string suffix;
+
 
 
 
@@ -86,8 +85,7 @@ namespace GabSith.WFT
         {
             defaultColor = GUI.color;
 
-
-            //useGlobal = ProjectSettingsManager.GetBool(MenuControlUseGlobalKey, true);
+            suffix = ProjectSettingsManager.GetString(MenuControlFolderSuffixKey);
         }
 
         private void OnDestroy()
@@ -269,7 +267,7 @@ namespace GabSith.WFT
 
                                 folderPath = folderPath.Substring(index);
                             }*/
-                            CommonActions.SelectFolder(MenuControlUseGlobalKey, MenuControlFolderKey);
+                            CommonActions.SelectFolder(MenuControlUseGlobalKey, MenuControlFolderKey, MenuControlFolderSuffixKey, ref suffix);
 
                             if (GUILayout.Button("Create", GUILayout.Height(25)))
                             {
@@ -1109,10 +1107,13 @@ namespace GabSith.WFT
         {
             VRCExpressionsMenu expressionsMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
 
-            Directory.CreateDirectory(CommonActions.GetFolder(MenuControlUseGlobalKey, MenuControlFolderKey));
-            AssetDatabase.CreateAsset(expressionsMenu, CommonActions.GetFolder(MenuControlUseGlobalKey, MenuControlFolderKey) + "/" + name + ".asset");
+            Directory.CreateDirectory(GetFolder());
+            AssetDatabase.CreateAsset(expressionsMenu, GetFolder() + "/" + name + ".asset");
 
             MakeSureItDoesTheThing(expressionsMenu);
+
+            EditorGUIUtility.PingObject(expressionsMenu);
+
 
             return expressionsMenu;
         }
@@ -1220,6 +1221,10 @@ namespace GabSith.WFT
             return selectedElement;
         }
 
+        string GetFolder()
+        {
+            return CommonActions.GetFolder(MenuControlUseGlobalKey, MenuControlFolderKey) + "/" + suffix;
+        }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)
         {

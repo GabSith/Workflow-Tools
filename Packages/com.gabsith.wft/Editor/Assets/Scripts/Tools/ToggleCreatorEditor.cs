@@ -66,7 +66,8 @@ namespace GabSith.WFT
 
         private const string ToggleCreatorFolderKey = "ToggleCreatorFolderKey";
         private const string ToggleCreatorUseGlobalKey = "ToggleCreatorUseGlobalKey";
-        //private const string ToggleCreatorFolderSuffixKey = "ToggleCreatorFolderSuffixKey";
+        private const string ToggleCreatorFolderSuffixKey = "ToggleCreatorFolderSuffixKey";
+        string suffix;
 
 
 
@@ -96,6 +97,8 @@ namespace GabSith.WFT
             }
 
             LoadProxyClip();
+
+            suffix = ProjectSettingsManager.GetString(ToggleCreatorFolderSuffixKey);
 
         }
 
@@ -341,7 +344,7 @@ namespace GabSith.WFT
 
             if (!useExistingAnimation)
             {
-                if (CommonActions.SelectFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey))
+                if (CommonActions.SelectFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey, ToggleCreatorFolderSuffixKey, ref suffix))
                 {
                     CheckRepeatedAnimation();
                 }
@@ -620,8 +623,8 @@ namespace GabSith.WFT
             clip.SetCurve("___proxy___", typeof(GameObject), "m_IsActive", curve1);
 
 
-            Directory.CreateDirectory(CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey));
-            string clipPath = CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey) + "/proxy.anim";
+            Directory.CreateDirectory(GetFolder());
+            string clipPath = GetFolder() + "/proxy.anim";
             AssetDatabase.CreateAsset(clip, clipPath);
 
             clip = AssetDatabase.LoadAssetAtPath(clipPath, typeof(AnimationClip)) as AnimationClip;
@@ -654,13 +657,15 @@ namespace GabSith.WFT
                 }
 
 
-                Directory.CreateDirectory(CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey));
-                string clipPath = CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey) + "/" + animationName.Replace("/", " ") + ".anim";
+                Directory.CreateDirectory(GetFolder());
+                string clipPath = GetFolder() + "/" + animationName.Replace("/", " ") + ".anim";
                 AssetDatabase.CreateAsset(clip, clipPath);
 
                 clip = AssetDatabase.LoadAssetAtPath(clipPath, typeof(AnimationClip)) as AnimationClip;
 
                 MakeSureItDoesTheThing(clip);
+
+                EditorGUIUtility.PingObject(clip);
 
                 return clip;
             }
@@ -755,6 +760,11 @@ namespace GabSith.WFT
             return true;
         }
 
+        string GetFolder()
+        {
+            return CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey) + "/" + ProjectSettingsManager.GetString(ToggleCreatorFolderSuffixKey);
+        }
+
 
         void CheckRepeatedParameter(string parameter)
         {
@@ -777,7 +787,7 @@ namespace GabSith.WFT
             animationAlreadyExists = false;
             if (!string.IsNullOrEmpty(animationName))
             {
-                AnimationClip clip = AssetDatabase.LoadAssetAtPath(CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey) + "/" + 
+                AnimationClip clip = AssetDatabase.LoadAssetAtPath(GetFolder() + "/" + 
                     animationName.Replace("/", " ") + ".anim", typeof(AnimationClip)) as AnimationClip;
                 if (clip != null)
                 {

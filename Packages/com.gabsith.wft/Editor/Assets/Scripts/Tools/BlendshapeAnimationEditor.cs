@@ -24,6 +24,8 @@ namespace GabSith.WFT
 
         private const string BlendshapeAnimFolderKey = "BlendshapeAnimFolderKey";
         private const string BlendshapeAnimUseGlobalKey = "BlendshapeAnimUseGlobalKey";
+        private const string BlendshapeAnimFolderSuffixKey = "BlendshapeAnimFolderSuffixKey";
+        string suffix;
 
 
         GameObject parent;
@@ -55,7 +57,11 @@ namespace GabSith.WFT
             //Show existing window instance. If one doesn't exist, make one.
             EditorWindow w = EditorWindow.GetWindow(typeof(BlendshapeAnimationEditor), false, "Blendshape Animation Creator");
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("editcollision_16@2x").image, text = "Blendshape Animations", tooltip = "♥" };
+        }
 
+        private void OnEnable()
+        {
+            suffix = ProjectSettingsManager.GetString(BlendshapeAnimFolderSuffixKey);
         }
 
         void OnGUI()
@@ -355,7 +361,7 @@ namespace GabSith.WFT
                 // Select Folder
                 if (!useExistingAnimation)
                 {
-                    CommonActions.SelectFolder(BlendshapeAnimUseGlobalKey, BlendshapeAnimFolderKey);
+                    CommonActions.SelectFolder(BlendshapeAnimUseGlobalKey, BlendshapeAnimFolderKey, BlendshapeAnimFolderSuffixKey, ref suffix);
                 }
 
             }
@@ -427,6 +433,8 @@ namespace GabSith.WFT
 
             Directory.CreateDirectory(GetFolder());
             AssetDatabase.CreateAsset(clip, GetFolder() + "/" + clip.name + ".anim");
+
+            EditorGUIUtility.PingObject(clip);
 
             MakeSureItDoesTheThing(clip);
         }
@@ -611,7 +619,7 @@ namespace GabSith.WFT
 
         string GetFolder()
         {
-            return CommonActions.GetFolder(BlendshapeAnimUseGlobalKey, BlendshapeAnimFolderKey);
+            return CommonActions.GetFolder(BlendshapeAnimUseGlobalKey, BlendshapeAnimFolderKey) + "/" + suffix;
         }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)

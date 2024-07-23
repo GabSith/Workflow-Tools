@@ -24,8 +24,6 @@ namespace GabSith.WFT
 {
     public class HueShiftEditor : EditorWindow
     {
-        Editor gameObjectEditor;
-
         VRCAvatarDescriptor[] avatarDescriptorsFromScene;
 
         VRCAvatarDescriptor avatarDescriptor;
@@ -64,14 +62,15 @@ namespace GabSith.WFT
 
         private const string HueShiftFolderKey = "HueShiftFolderKey";
         private const string HueShiftUseGlobalKey = "HueShiftUseGlobalKey";
-        //private const string GlobalFolderKey = "GlobalFolderKey";
+        private const string HueShiftFolderSuffixKey = "HueShiftFolderSuffixKey";
+        string suffix;
+
 
         [MenuItem("GabSith/Hue Shift Creator", false, 50)]
 
 
         public static void ShowWindow()
         {
-            //Show existing window instance. If one doesn't exist, make one.
             EditorWindow w = EditorWindow.GetWindow(typeof(HueShiftEditor), false, "Hue Shift Creator");
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image, text = "Hue Shift Creator", tooltip = "♥" };
 
@@ -93,6 +92,7 @@ namespace GabSith.WFT
                 }
             }
 
+            suffix = ProjectSettingsManager.GetString(HueShiftFolderSuffixKey);
 
         }
 
@@ -304,7 +304,7 @@ namespace GabSith.WFT
             }
 
 
-            CommonActions.SelectFolder(HueShiftUseGlobalKey, HueShiftFolderKey);
+            CommonActions.SelectFolder(HueShiftUseGlobalKey, HueShiftFolderKey, HueShiftFolderSuffixKey, ref suffix);
 
 
             // Use a space to separate the fields
@@ -554,12 +554,14 @@ namespace GabSith.WFT
                     }
                 }
 
-                Directory.CreateDirectory(CommonActions.GetFolder(HueShiftUseGlobalKey, HueShiftFolderKey));
-                AssetDatabase.CreateAsset(clip, CommonActions.GetFolder(HueShiftUseGlobalKey, HueShiftFolderKey) + "/" + animationName.Replace("/", " ") + ".anim");
+                Directory.CreateDirectory(GetFolder());
+                AssetDatabase.CreateAsset(clip, GetFolder() + "/" + animationName.Replace("/", " ") + ".anim");
 
-                clip = AssetDatabase.LoadAssetAtPath(CommonActions.GetFolder(HueShiftUseGlobalKey, HueShiftFolderKey) + "/" + animationName.Replace("/", " ") + ".anim", typeof(AnimationClip)) as AnimationClip;
+                clip = AssetDatabase.LoadAssetAtPath(GetFolder() + "/" + animationName.Replace("/", " ") + ".anim", typeof(AnimationClip)) as AnimationClip;
 
                 MakeSureItDoesTheThing(clip);
+
+                EditorGUIUtility.PingObject(clip);
 
                 return clip;
             }
@@ -607,6 +609,11 @@ namespace GabSith.WFT
             }
 
             return true;
+        }
+
+        string GetFolder()
+        {
+            return CommonActions.GetFolder(HueShiftUseGlobalKey, HueShiftFolderKey) + "/" + suffix;
         }
 
 

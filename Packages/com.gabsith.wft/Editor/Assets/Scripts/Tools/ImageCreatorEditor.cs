@@ -17,7 +17,6 @@ namespace GabSith.WFT
         private Color backgroundColor = new Color(0.69f, 0.34f, 0.34f);
         private bool useSkybox = false;
         private bool useTransparentBackground = true;
-        //private string saveFolder = "";
         private bool showPreview = true;
         private bool useSceneView = true;
         private Camera selectedCamera;
@@ -29,11 +28,17 @@ namespace GabSith.WFT
 
         private const string ScreenshotFolderKey = "ScreenshotFolderKey";
         private const string ScreenshotUseGlobalKey = "ScreenshotUseGlobalKey";
+        private const string ScreenshotFolderSuffixKey = "ScreenshotFolderSuffixKey";
+        string suffix;
+
+
+        private Texture2D borderTexture;
+        private Color borderColor = Color.black;
+        private int borderWidth = 2;
 
         [MenuItem("GabSith/Image Creator")]
         public static void ShowWindow()
         {
-            //GetWindow<ScreenshotTool>("Screenshot Tool");
             EditorWindow w = EditorWindow.GetWindow(typeof(ImageCreator), false, "Image Creator");
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("FrameCapture On").image, text = "Image Creator", tooltip = "♥" };
 
@@ -42,6 +47,8 @@ namespace GabSith.WFT
         private void OnEnable()
         {
             SceneView.duringSceneGui += OnSceneGUI;
+            suffix = ProjectSettingsManager.GetString(ScreenshotFolderSuffixKey);
+
         }
 
         private void OnDisable()
@@ -50,6 +57,10 @@ namespace GabSith.WFT
             if (previewTexture != null)
             {
                 DestroyImmediate(previewTexture);
+            }
+            if (borderTexture != null)
+            {
+                DestroyImmediate(borderTexture);
             }
         }
 
@@ -102,6 +113,14 @@ namespace GabSith.WFT
             resolutionHeight = EditorGUILayout.IntField("Height", resolutionHeight);
             if (EditorGUI.EndChangeCheck())
             {
+                if (resolutionWidth < 1)
+                {
+                    resolutionWidth = 1;
+                }
+                if (resolutionHeight < 1)
+                {
+                    resolutionHeight = 1;
+                }
                 UpdatePreviewTexture();
             }
 
@@ -136,17 +155,33 @@ namespace GabSith.WFT
 
             GUILayout.Space(10);
 
-            CommonActions.SelectFolder(ScreenshotUseGlobalKey, ScreenshotFolderKey);
+            CommonActions.SelectFolder(ScreenshotUseGlobalKey, ScreenshotFolderKey, ScreenshotFolderSuffixKey, ref suffix);
 
             GUILayout.Space(10);
             showPreview = EditorGUILayout.Toggle("Show Preview", showPreview);
 
+            /*
+            EditorGUI.BeginChangeCheck();
+            borderColor = EditorGUILayout.ColorField("Border Color", borderColor);
+            borderWidth = EditorGUILayout.IntSlider("Border Width", borderWidth, 1, 10);
+            if (EditorGUI.EndChangeCheck())
+            {
+                CreateBorderTexture();
+            }
+            */
             if (showPreview)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 UpdatePreview();
                 Rect previewRect = GUILayoutUtility.GetAspectRect(16f / 9f);
+
                 GUI.DrawTexture(previewRect, previewTexture, ScaleMode.ScaleToFit);
+
+                if (useTransparentBackground)
+                {
+                    GUI.DrawTexture(previewRect, borderTexture, ScaleMode.ScaleToFit);
+                }
+
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.HelpBox("The preview uses resources when active. Remember to disable it when you're done using it.", MessageType.Info);
             }
@@ -165,6 +200,34 @@ namespace GabSith.WFT
             EditorGUILayout.EndVertical();
         }
 
+        private void CreateBorderTexture()
+        {
+            if (borderTexture != null)
+            {
+                DestroyImmediate(borderTexture);
+            }
+            borderTexture = new Texture2D(resolutionWidth, resolutionHeight);
+            Color[] colors = new Color[resolutionWidth * resolutionHeight];
+            for (int y = 0; y < resolutionHeight; y++)
+            {
+                for (int x = 0; x < resolutionWidth; x++)
+                {
+                    if (x < borderWidth || x >= resolutionWidth - borderWidth ||
+                        y < borderWidth || y >= resolutionHeight - borderWidth)
+                    {
+                        colors[y * resolutionWidth + x] = borderColor;
+                    }
+                    else
+                    {
+                        colors[y * resolutionWidth + x] = Color.clear;
+                    }
+                }
+            }
+            borderTexture.SetPixels(colors);
+            borderTexture.Apply();
+        }
+
+
         private void UpdatePreviewTexture()
         {
             if (previewTexture != null)
@@ -173,6 +236,7 @@ namespace GabSith.WFT
             }
             previewTexture = new RenderTexture(resolutionWidth, resolutionHeight, 24);
             previewTexture.antiAliasing = 8;
+            CreateBorderTexture();
         }
 
         private void UpdatePreview()
@@ -315,6 +379,7 @@ namespace GabSith.WFT
             {
                 filename = $"Screenshot_{System.DateTime.Now:yyyyMMdd_HHmmss}.png";
             }
+            Directory.CreateDirectory(GetFolder());
             File.WriteAllBytes(Path.Combine(GetFolder(), filename), bytes);
 
             // Clean up
@@ -344,7 +409,6 @@ namespace GabSith.WFT
             }
 
             Debug.Log($"Screenshot saved to:\n{Path.Combine(GetFolder(), filename)}");
-            //EditorUtility.DisplayDialog("Screenshot Saved", $"Screenshot saved to:\n{Path.Combine(GetFolder(), filename)}", "OK");
         }
 
         private Camera GetActiveCamera()
@@ -383,7 +447,7 @@ namespace GabSith.WFT
 
         private string GetFolder()
         {
-            return CommonActions.GetFolder(ScreenshotUseGlobalKey, ScreenshotFolderKey);
+            return CommonActions.GetFolder(ScreenshotUseGlobalKey, ScreenshotFolderKey) + "/" + suffix;
         }
     }
 }

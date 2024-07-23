@@ -4,9 +4,6 @@ using UnityEditor;
 using UnityEngine;
 
 using VRC.SDK3.Avatars.Components;
-using VRC.SDK3.Avatars.ScriptableObjects;
-
-using System.IO;
 using System.Collections.Generic;
 
 
@@ -24,6 +21,13 @@ namespace GabSith.WFT
         Vector3 newBoundsExtent = new Vector3(1, 1, 1);
 
         Vector2 scrollPos;
+        Vector2 scrollPosition;
+
+        bool centerLink = false;
+        bool extentLink = true;
+        private int lastChangedAxis = -1;
+
+        List<bool> individualLinks = new List<bool>();
 
 
         [MenuItem("GabSith/Bounds Editor", false, 2)]
@@ -49,6 +53,7 @@ namespace GabSith.WFT
 
         void OnGUI()
         {
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             CommonActions.GenerateTitle("Bounds Editor");
@@ -68,15 +73,42 @@ namespace GabSith.WFT
 
                 scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(false));
 
+                if (individualLinks.Count != renderers.Count * 2)
+                    individualLinks.Clear();
 
-                foreach (var item in renderers)
+
+                for (int i = 0; i < renderers.Count; i++)
                 {
-                    
-
                     EditorGUILayout.BeginVertical(new GUIStyle(GUI.skin.box));
 
-                    //EditorGUILayout.ObjectField(item, typeof(SkinnedMeshRenderer), true, GUILayout.Width(100));
+                    EditorGUILayout.ObjectField(renderers[i], typeof(SkinnedMeshRenderer), true);
+
+                    if (individualLinks.Count != renderers.Count * 2)
+                    {
+                        individualLinks.Add(false);
+                        individualLinks.Add(true);
+                    }
+
+                    Vector3 center = renderers[i].localBounds.center;
+                    Vector3 extent = renderers[i].localBounds.extents;
+
+                    Vector3WithLinkForLoop("Center", ref center, i * 2);
+                    Vector3WithLinkForLoop("Extent", ref extent, i * 2+1);
+
+                    renderers[i].localBounds = new Bounds { center = center, extents = extent };
+
+                    EditorGUILayout.EndVertical();
+                }
+
+                /*
+                foreach (var item in renderers)
+                {
+                    EditorGUILayout.BeginVertical(new GUIStyle(GUI.skin.box));
+
                     EditorGUILayout.ObjectField(item, typeof(SkinnedMeshRenderer), true);
+
+
+                    //individualLinks.Add()
 
 
                     EditorGUILayout.BeginHorizontal();
@@ -87,7 +119,7 @@ namespace GabSith.WFT
 
                     EditorGUILayout.BeginHorizontal();
                     Vector3 extent = item.localBounds.extents;
-                    GUILayout.Label("Extent", GUILayout.Width(70f));
+                    GUILayout.Label(new GUIContent("Extent"), GUILayout.Width(70f));
                     extent = EditorGUILayout.Vector3Field("", extent, GUILayout.Height(EditorGUIUtility.singleLineHeight));
                     EditorGUILayout.EndHorizontal();
 
@@ -96,32 +128,21 @@ namespace GabSith.WFT
 
                     EditorGUILayout.EndVertical();
                 }
-
+                */
 
                 EditorGUILayout.EndScrollView();
 
-                EditorGUILayout.Space(10);
-
-
-                EditorGUILayout.Space(10);
+                EditorGUILayout.Space(20);
 
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
                 GUILayout.Label("Set all to:", GUILayout.Width(70));
 
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("Center", GUILayout.Width(70f));
-                newBoundsCenter = EditorGUILayout.Vector3Field("", newBoundsCenter);
-                EditorGUILayout.EndHorizontal();
-
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("Extent", GUILayout.Width(70f));
-                newBoundsExtent = EditorGUILayout.Vector3Field("", newBoundsExtent);
-                EditorGUILayout.EndHorizontal();
+                Vector3WithLink("Center", ref newBoundsCenter, ref centerLink);
+                Vector3WithLink("Extent", ref newBoundsExtent, ref extentLink);
 
 
 
-                //newAnchor = EditorGUILayout.ObjectField(newAnchor, typeof(Transform), true) as Transform;
                 if (GUILayout.Button("Set"))
                 {
                     foreach (var item in renderers)
@@ -129,10 +150,6 @@ namespace GabSith.WFT
 
                         item.localBounds = new Bounds { center = newBoundsCenter, extents = newBoundsExtent };
 
-                        //EditorGUILayout.BeginHorizontal(new GUIStyle(GUI.skin.box));
-
-
-                        //EditorGUILayout.EndHorizontal();
                         EditorUtility.SetDirty(item);
                     }
 
@@ -144,11 +161,90 @@ namespace GabSith.WFT
 
             EditorGUILayout.Space(10);
 
-            // End the vertical layout group
             EditorGUILayout.EndVertical();
-
+            EditorGUILayout.EndScrollView();
         }
 
+        void Vector3WithLink(string name, ref Vector3 vector, ref bool useLink)
+        {
+            EditorGUILayout.BeginHorizontal();
+
+            GUILayout.Label(name, GUILayout.Width(50f));
+
+            // Toggle button for linking/unlinking
+            string iconName = useLink ? "d_Linked" : "d_Unlinked";
+            GUIContent iconContent = EditorGUIUtility.IconContent(iconName);
+            if (GUILayout.Button(iconContent, EditorStyles.miniButton, GUILayout.Width(30f), GUILayout.Height(20f)))
+            {
+                useLink = !useLink;
+            }
+
+            EditorGUI.BeginChangeCheck();
+
+            Vector3 oldValue = vector;
+            vector = EditorGUILayout.Vector3Field("", vector);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (useLink)
+                {
+                    // Determine which axis changed
+                    if (vector.x != oldValue.x) lastChangedAxis = 0;
+                    else if (vector.y != oldValue.y) lastChangedAxis = 1;
+                    else if (vector.z != oldValue.z) lastChangedAxis = 2;
+
+                    // Update all axes based on the changed axis
+                    if (lastChangedAxis != -1)
+                    {
+                        float newValue = vector[lastChangedAxis];
+                        vector = new Vector3(newValue, newValue, newValue);
+                    }
+                }
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+
+        void Vector3WithLinkForLoop(string name, ref Vector3 vector, int i)
+        {
+            EditorGUILayout.BeginHorizontal();
+
+            GUILayout.Label(name, GUILayout.Width(50f));
+
+            // Toggle button for linking/unlinking
+            string iconName = individualLinks[i] ? "d_Linked" : "d_Unlinked";
+            GUIContent iconContent = EditorGUIUtility.IconContent(iconName);
+            if (GUILayout.Button(iconContent, EditorStyles.miniButton, GUILayout.Width(30f), GUILayout.Height(20f)))
+            {
+                individualLinks[i] = !individualLinks[i];
+            }
+
+            EditorGUI.BeginChangeCheck();
+
+            Vector3 oldValue = vector;
+            vector = EditorGUILayout.Vector3Field("", vector);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (individualLinks[i])
+                {
+                    // Determine which axis changed
+                    if (vector.x != oldValue.x) lastChangedAxis = 0;
+                    else if (vector.y != oldValue.y) lastChangedAxis = 1;
+                    else if (vector.z != oldValue.z) lastChangedAxis = 2;
+
+                    // Update all axes based on the changed axis
+                    if (lastChangedAxis != -1)
+                    {
+                        float newValue = vector[lastChangedAxis];
+                        vector = new Vector3(newValue, newValue, newValue);
+                    }
+                }
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
 
     }
 

@@ -91,10 +91,6 @@ namespace GabSith.WFT
 
                 foreach (var item in renderers)
                 {
-                    //List<Transform> anchorOverride = new List<Transform> { };
-
-
-                    //anchorOverride.Add(item.probeAnchor);
 
                     EditorGUILayout.BeginHorizontal(new GUIStyle(GUI.skin.box));
 
@@ -117,10 +113,7 @@ namespace GabSith.WFT
 
                 EditorGUILayout.EndScrollView();
 
-                EditorGUILayout.Space(10);
-
-
-                EditorGUILayout.Space(10);
+                EditorGUILayout.Space(20);
 
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
@@ -154,19 +147,21 @@ namespace GabSith.WFT
                     {
                         _newAnchor.objectReferenceValue = animator.GetBoneTransform(HumanBodyBones.Hips);
                     }
+                    if (GUILayout.Button("Spine"))
+                    {
+                        _newAnchor.objectReferenceValue = animator.GetBoneTransform(HumanBodyBones.Spine);
+                    }
                     if (GUILayout.Button("Chest"))
                     {
                         _newAnchor.objectReferenceValue = animator.GetBoneTransform(HumanBodyBones.Chest);
                     }
                     if (animator.GetBoneTransform(HumanBodyBones.UpperChest) != null)
                     {
-                        if (GUILayout.Button("Upper Chest"))
+                        if (GUILayout.Button("U. Chest"))
                         {
                             _newAnchor.objectReferenceValue = animator.GetBoneTransform(HumanBodyBones.UpperChest);
                         }
-
                     }
-
 
                     EditorGUILayout.EndHorizontal();
                 }
