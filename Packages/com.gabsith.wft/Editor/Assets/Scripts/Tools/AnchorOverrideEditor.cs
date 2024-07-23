@@ -8,22 +8,28 @@ using UnityEngine;
 
 using System.IO;
 using System.Collections.Generic;
-
-
-
+using VRC.SDK3.Avatars.Components;
+using VRC.SDK3.Avatars.ScriptableObjects;
 
 
 namespace GabSith.WFT
 {
     public class AnchorOverrideEditor : EditorWindow
     {
+        SerializedObject so;
+        SerializedProperty _parent;
+        SerializedProperty _newAnchor;
 
+
+        Vector2 scrollPosDescriptors;
+        VRCAvatarDescriptor[] avatarDescriptorsFromScene;
+
+        [SerializeField]
         GameObject parent;
+        [SerializeField]
         Transform newAnchor = null;
 
-
         Vector2 scrollPos;
-
 
         [MenuItem("GabSith/Anchor Override Editor", false, 2)]
 
@@ -36,31 +42,40 @@ namespace GabSith.WFT
 
         }
 
+        private void OnEnable()
+        {
+            so = new SerializedObject(this);
+            InitializeSerializedProperties();
 
+            CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
+
+            if (avatarDescriptorsFromScene.Length == 1)
+            {
+                parent = avatarDescriptorsFromScene[0].gameObject;
+            }
+        }
+
+        private void InitializeSerializedProperties()
+        {
+            _parent = so.FindProperty("parent");
+            _newAnchor = so.FindProperty("newAnchor");
+
+
+        }
         void OnGUI()
         {
-
-            // Use a vertical layout group to organize the fields
+            so.Update();
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Use a label field to display the title of the tool with a custom style
-            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40
-            };
+            CommonActions.GenerateTitle("Anchor Override Editor");
 
 
-            EditorGUILayout.LabelField("Anchor Override Editor", titleStyle);
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
+            //parent = EditorGUILayout.ObjectField("Avatar", parent, typeof(GameObject), true) as GameObject;
+
+            // Avatar Selection
+            CommonActions.FindAvatarsAsObjects(ref parent, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);
 
 
-
-            EditorGUILayout.Space(25);
-
-
-            parent = EditorGUILayout.ObjectField("Avatar", parent, typeof(GameObject), true) as GameObject;
 
             if (parent != null)
             {
@@ -107,22 +122,22 @@ namespace GabSith.WFT
 
                 EditorGUILayout.Space(10);
 
-                EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
+                EditorGUILayout.BeginHorizontal();
                 GUILayout.Label("Set all to:", GUILayout.Width(70));
-                newAnchor = EditorGUILayout.ObjectField(newAnchor, typeof(Transform), true) as Transform;
+                //newAnchor = EditorGUILayout.ObjectField(newAnchor, typeof(Transform), true) as Transform;
+
+                EditorGUILayout.PropertyField(_newAnchor, new GUIContent(""));
+
+
+
                 if (GUILayout.Button("Set"))
                 {
                     foreach (var item in renderers)
                     {
-
                         item.probeAnchor = newAnchor;
 
-
-                        //EditorGUILayout.BeginHorizontal(new GUIStyle(GUI.skin.box));
-
-
-                        //EditorGUILayout.EndHorizontal();
                         EditorUtility.SetDirty(item);
                     }
 
@@ -130,11 +145,40 @@ namespace GabSith.WFT
 
                 EditorGUILayout.EndHorizontal();
 
+                Animator animator = parent.GetComponent<Animator>();
+                if (animator != null && animator.isHuman)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.Label("Presets:", GUILayout.Width(70));
+                    if (GUILayout.Button("Hips"))
+                    {
+                        _newAnchor.objectReferenceValue = animator.GetBoneTransform(HumanBodyBones.Hips);
+                    }
+                    if (GUILayout.Button("Chest"))
+                    {
+                        _newAnchor.objectReferenceValue = animator.GetBoneTransform(HumanBodyBones.Chest);
+                    }
+                    if (animator.GetBoneTransform(HumanBodyBones.UpperChest) != null)
+                    {
+                        if (GUILayout.Button("Upper Chest"))
+                        {
+                            _newAnchor.objectReferenceValue = animator.GetBoneTransform(HumanBodyBones.UpperChest);
+                        }
+
+                    }
+
+
+                    EditorGUILayout.EndHorizontal();
+                }
+                so.ApplyModifiedProperties();
+
+                EditorGUILayout.EndVertical();
+
+
             }
 
             EditorGUILayout.Space(10);
 
-            // End the vertical layout group
             EditorGUILayout.EndVertical();
 
         }

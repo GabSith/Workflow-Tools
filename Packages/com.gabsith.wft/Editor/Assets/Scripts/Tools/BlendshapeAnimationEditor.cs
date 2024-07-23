@@ -19,12 +19,11 @@ namespace GabSith.WFT
         bool useExistingAnimation = false;
         AnimationClip existingAnimation;
 
-        private string defaultPath = "Assets/WF Tools - GabSith/Generated";
+        //private string defaultPath = "Assets/WF Tools - GabSith/Generated";
         //private string folderPath = "Assets/WF Tools - GabSith/Generated";
 
         private const string BlendshapeAnimFolderKey = "BlendshapeAnimFolderKey";
         private const string BlendshapeAnimUseGlobalKey = "BlendshapeAnimUseGlobalKey";
-        private const string GlobalFolderKey = "GlobalFolderKey";
 
 
         GameObject parent;
@@ -61,23 +60,9 @@ namespace GabSith.WFT
 
         void OnGUI()
         {
-            // Use a vertical layout group to organize the fields
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Use a label field to display the title of the tool with a custom style
-            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40
-            };
-
-
-            EditorGUILayout.LabelField("Blendshape Animation Creator", titleStyle);
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
-
-
-            EditorGUILayout.Space(25);
+            CommonActions.GenerateTitle("Blendshape Animation Creator");
 
 
             parent = EditorGUILayout.ObjectField("Parent Game Object", parent, typeof(GameObject), true) as GameObject;
@@ -208,17 +193,6 @@ namespace GabSith.WFT
                         }
                     }
 
-                    /*if (EditorGUI.EndChangeCheck())
-                    {
-                        for (int i = 0; i < blendShapeCount; i++)
-                        {
-                            if (isBlendShapeActive[i])
-                                skinnedMeshRenderer.SetBlendShapeWeight(i, blendShapeWeights[i]);
-                            else
-                                skinnedMeshRenderer.SetBlendShapeWeight(i, 0);
-
-                        }
-                    }*/
                 }
             }
 
@@ -241,6 +215,7 @@ namespace GabSith.WFT
                         blendShapeWeightsList.RemoveAt(j);
                         isBlendShapeActiveList.RemoveAt(j);
                         scrollPosList.RemoveAt(j);
+                        EditorGUILayout.EndHorizontal();
                         continue;
                     }
                     EditorGUILayout.LabelField("Mesh #" + (j + 2), GUILayout.MaxWidth(125f));
@@ -362,7 +337,7 @@ namespace GabSith.WFT
             EditorGUILayout.Space(20);
 
             useExistingAnimation = EditorGUILayout.ToggleLeft("Add to existing animation", useExistingAnimation);
-                EditorGUILayout.Space();
+            EditorGUILayout.Space();
             if (useExistingAnimation)
             {
                 existingAnimation = EditorGUILayout.ObjectField("Animation", existingAnimation, typeof(AnimationClip), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as AnimationClip;
@@ -377,71 +352,13 @@ namespace GabSith.WFT
 
                 EditorGUILayout.Space(10);
 
-
-                /*
-                // Use a button to select the folder path 
-                if (GUILayout.Button("Select Folder"))
+                // Select Folder
+                if (!useExistingAnimation)
                 {
-                    folderPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets/", "");
-
-                    if (string.IsNullOrEmpty(folderPath))
-                    {
-                        folderPath = defaultPath;
-                    }
-
-                    int index = folderPath.IndexOf("Assets/");
-
-                    folderPath = folderPath.Substring(index);
+                    CommonActions.SelectFolder(BlendshapeAnimUseGlobalKey, BlendshapeAnimFolderKey);
                 }
-                */
 
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button("Select Folder"))
-                {
-                    string folderPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets/", "");
-
-                    if (folderPath == null || folderPath == "")
-                    {
-                        folderPath = defaultPath;
-                    }
-
-                    int index = folderPath.IndexOf("Assets/");
-
-                    folderPath = folderPath.Substring(index);
-
-                    if (ProjectSettingsManager.GetBool(BlendshapeAnimUseGlobalKey, true))
-                        ProjectSettingsManager.SetString(GlobalFolderKey, folderPath);
-                    else
-                        ProjectSettingsManager.SetString(BlendshapeAnimFolderKey, folderPath);
-                }
-                // Global Folder
-                Color def = GUI.backgroundColor;
-                if (ProjectSettingsManager.GetBool(BlendshapeAnimUseGlobalKey, true))
-                {
-                    GUI.backgroundColor = new Color { r = 0.5f, g = 1f, b = 0.5f, a = 1 };
-                }
-                if (GUILayout.Button("Use Global", GUILayout.Width(100f)))
-                {
-                    //useGlobal = !useGlobal;
-                    ProjectSettingsManager.SetBool(BlendshapeAnimUseGlobalKey, !ProjectSettingsManager.GetBool(BlendshapeAnimUseGlobalKey, true));
-                }
-                GUI.backgroundColor = def;
-
-                EditorGUILayout.EndHorizontal();
             }
-
-
-            if (!useExistingAnimation)
-            {
-                // Use a label field to display the selected folder path with a custom style
-                GUIStyle pathLabelStyle = new GUIStyle(EditorStyles.label)
-                {
-                    wordWrap = true // Enable word wrapping
-                };
-                EditorGUILayout.LabelField("Selected Folder: " + GetFolder(), pathLabelStyle);
-            }
-
-
             EditorGUILayout.Space();
 
 
@@ -459,7 +376,7 @@ namespace GabSith.WFT
             buttonStyle.fixedHeight = 35; // Increase the button height
 
             //if (GUILayout.Button("Create Animation", buttonStyle))
-            if (GUILayout.Button( useExistingAnimation ? "Add To Animation" : "Create Animation", buttonStyle))
+            if (GUILayout.Button(useExistingAnimation ? "Add To Animation" : "Create Animation", buttonStyle))
             {
                 if (useExistingAnimation)
                     AddToAnimationClip(existingAnimation);
@@ -650,17 +567,6 @@ namespace GabSith.WFT
                         }
                     }
 
-                    /*if (EditorGUI.EndChangeCheck())
-                    {
-                        for (int i = 0; i < blendShapeCount; i++)
-                        {
-                            if (isBlendShapeActive[i])
-                                skinnedMeshRenderer.SetBlendShapeWeight(i, blendShapeWeights[i]);
-                            else
-                                skinnedMeshRenderer.SetBlendShapeWeight(i, 0);
-
-                        }
-                    }*/
                 }
             }
 
@@ -676,7 +582,7 @@ namespace GabSith.WFT
                 return false;
             }
 
-            if (string.IsNullOrEmpty(animationName)  && !useExistingAnimation)
+            if (string.IsNullOrEmpty(animationName) && !useExistingAnimation)
             {
                 return false;
             }
@@ -703,16 +609,9 @@ namespace GabSith.WFT
             return true;
         }
 
-        private string GetFolder()
+        string GetFolder()
         {
-            if (ProjectSettingsManager.GetBool(BlendshapeAnimUseGlobalKey, true))
-            {
-                return ProjectSettingsManager.GetString(GlobalFolderKey, defaultPath);
-            }
-            else
-            {
-                return ProjectSettingsManager.GetString(BlendshapeAnimFolderKey, defaultPath);
-            }
+            return CommonActions.GetFolder(BlendshapeAnimUseGlobalKey, BlendshapeAnimFolderKey);
         }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)
@@ -728,4 +627,4 @@ namespace GabSith.WFT
 
 }
 
-    #endif
+#endif

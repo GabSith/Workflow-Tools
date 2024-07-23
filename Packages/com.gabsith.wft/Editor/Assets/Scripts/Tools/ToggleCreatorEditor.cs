@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+﻿    #if UNITY_EDITOR
 
 using UnityEditor;
 using UnityEngine;
@@ -24,7 +24,7 @@ namespace GabSith.WFT
 {
     public class ToggleCreatorEditor : EditorWindow
     {
-        bool refreshedAvatars = false;
+        //bool refreshedAvatars = false;
         VRCAvatarDescriptor[] avatarDescriptorsFromScene;
 
         VRCAvatarDescriptor avatarDescriptor;
@@ -54,6 +54,8 @@ namespace GabSith.WFT
         bool advancedFold = false;
         Vector2 scrollPosExtraObjects;
         Vector2 scrollPosDescriptors;
+        Vector2 scrollPos;
+
 
         bool parameterAlreadyExists;
         bool layerAlreadyExists;
@@ -63,13 +65,8 @@ namespace GabSith.WFT
         private const string ProxyClipGuidKey = "ProxyClipSaver_ClipGuid";
 
         private const string ToggleCreatorFolderKey = "ToggleCreatorFolderKey";
-        private string defaultPath = "Assets/WF Tools - GabSith/Generated";
-        //private string folderPath = "Assets/WF Tools - GabSith/Generated";
-
-        private const string GlobalFolderKey = "GlobalFolderKey";
-
         private const string ToggleCreatorUseGlobalKey = "ToggleCreatorUseGlobalKey";
-        //bool useGlobal = true;
+        //private const string ToggleCreatorFolderSuffixKey = "ToggleCreatorFolderSuffixKey";
 
 
 
@@ -90,9 +87,7 @@ namespace GabSith.WFT
 
             if (avatarDescriptor == null)
             {
-                //avatarDescriptor = SceneAsset.FindObjectOfType<VRCAvatarDescriptor>();
-
-                RefreshDescriptors();
+                CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
 
                 if (avatarDescriptorsFromScene.Length == 1)
                 {
@@ -102,7 +97,6 @@ namespace GabSith.WFT
 
             LoadProxyClip();
 
-            //useGlobal = ProjectSettingsManager.GetBool(ToggleCreatorUseGlobalKey, true);
         }
 
 
@@ -116,84 +110,14 @@ namespace GabSith.WFT
 
         void OnGUI()
         {
-            // Use a vertical layout group to organize the fields
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
 
-            // Use a label field to display the title of the tool with a custom style
-            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40
-            };
+            // Title
+            CommonActions.GenerateTitle("Toggle Creator");
 
-
-            EditorGUILayout.LabelField("Toggle Creator", titleStyle);
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
-
-            // Use a space to separate the fields
-            EditorGUILayout.Space(25);
-
-
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                // Use object fields to assign the avatar, object, and menu
-                avatarDescriptor = (VRCAvatarDescriptor)EditorGUILayout.ObjectField("Avatar", avatarDescriptor, typeof(VRCAvatarDescriptor), true);
-
-                if (GUILayout.Button(avatarDescriptorsFromScene.Length < 2 ? "Select From Scene" : "Refresh", avatarDescriptorsFromScene.Length < 2 ? GUILayout.Width(130f) : GUILayout.Width(70f)))
-                {
-                    RefreshDescriptors();
-
-                    if (avatarDescriptorsFromScene.Length == 1)
-                    {
-                        avatarDescriptor = avatarDescriptorsFromScene[0];
-                    }
-                }
-
-            }
-
-            if (avatarDescriptor != null)
-            {
-                refreshedAvatars = false;
-            }
-            else
-            {
-                if (!refreshedAvatars)
-                {
-                    //Debug.Log("avatarDescriptor is null!");
-                    RefreshDescriptors();
-
-                    if (avatarDescriptorsFromScene.Length == 1)
-                    {
-                        avatarDescriptor = avatarDescriptorsFromScene[0];
-                    }
-                    refreshedAvatars = true;
-                }
-            }
-
-
-            if (avatarDescriptorsFromScene != null && avatarDescriptorsFromScene.Length > 1)
-            {
-                scrollPosDescriptors = EditorGUILayout.BeginScrollView(scrollPosDescriptors, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
-                //using (new EditorGUILayout.HorizontalScope())
-                EditorGUILayout.BeginHorizontal();
-                foreach (var item in avatarDescriptorsFromScene)
-                {
-                    if (item == null)
-                    {
-                        RefreshDescriptors();
-                    }
-                    else if (GUILayout.Button(item != null ? item.name : ""))
-                    {
-                        avatarDescriptor = item;
-                    }
-                }
-                EditorGUILayout.EndHorizontal();
-                EditorGUILayout.EndScrollView();
-
-                // Use a space to separate the fields
-                EditorGUILayout.Space();
-            }
+            // Avatar Selection
+            CommonActions.FindAvatars(ref avatarDescriptor, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);
 
 
             if (useExistingAnimation)
@@ -203,7 +127,10 @@ namespace GabSith.WFT
                 extraGameObjects.Clear();
             }
 
-            scrollPosExtraObjects = EditorGUILayout.BeginScrollView(scrollPosExtraObjects, GUILayout.ExpandHeight(false));
+            scrollPosExtraObjects = EditorGUILayout.BeginScrollView(scrollPosExtraObjects, GUIStyle.none, GUI.skin.verticalScrollbar,
+                GUILayout.ExpandHeight(false));
+            //scrollPosExtraObjects = EditorGUILayout.BeginScrollView(scrollPosExtraObjects, GUILayout.ExpandHeight(false), GUILayout.);
+
 
             EditorGUILayout.BeginHorizontal();
             EditorGUI.BeginChangeCheck();
@@ -224,7 +151,6 @@ namespace GabSith.WFT
             }
             if (EditorGUI.EndChangeCheck())
             {
-
                 toggleName = gameObject != null ? gameObject.name : null ?? "";
 
                 if (gameObject != null && avatarDescriptor != null)
@@ -242,6 +168,7 @@ namespace GabSith.WFT
             // Extra objects to toggle
             if (extraGameObjects != null && extraGameObjects.Count > 0)
             {
+
                 for (int i = 0; i < extraGameObjects.Count; i++)
                 {
                     if ((extraGameObjects[i] != null && avatarDescriptor != null) && ((!extraGameObjects[i].transform.IsChildOf(avatarDescriptor.transform)) || (extraGameObjects[i].transform == avatarDescriptor.transform)))
@@ -253,15 +180,16 @@ namespace GabSith.WFT
                     if (GUILayout.Button("-", GUILayout.Width(20f)))
                     {
                         extraGameObjects.RemoveAt(i);
-                        continue;
+                        EditorGUILayout.EndHorizontal();
+                        break;
                     }
                     EditorGUILayout.LabelField("Object to toggle #" + (i+2), GUILayout.MaxWidth(125f));
                     extraGameObjects[i] = (GameObject)EditorGUILayout.ObjectField("", extraGameObjects[i], typeof(GameObject), true, GUILayout.ExpandWidth(true));
                     EditorGUILayout.EndHorizontal();
                 }
             }
-
             EditorGUILayout.EndScrollView();
+
 
             GUI.enabled = true;
 
@@ -271,7 +199,8 @@ namespace GabSith.WFT
 
             if (avatarDescriptor != null)
             {
-                FXLayer = (AnimatorController)avatarDescriptor.baseAnimationLayers[4].animatorController;
+                if (avatarDescriptor.baseAnimationLayers[4].animatorController != null)
+                    FXLayer = (AnimatorController)avatarDescriptor.baseAnimationLayers[4].animatorController;
                 parameters = avatarDescriptor.expressionParameters;
                 if (menu == null)
                     menu = avatarDescriptor.expressionsMenu;
@@ -339,19 +268,14 @@ namespace GabSith.WFT
                 }
 
 
-                //EditorGUI.BeginChangeCheck();
+
                 // Use a toggle for slow transition
                 slowTrasition = EditorGUILayout.Toggle("Slow Trasition", slowTrasition, toggleStyle);
-                //if (EditorGUI.EndChangeCheck())
-                //{
-                //    transitionDuration = 0.1f;
-                //}
+
                 if (slowTrasition)
                 {
                     using (new EditorGUILayout.HorizontalScope())
                     {
-                        //transitionDuration = EditorGUILayout.FloatField(transitionDuration, GUILayout.MaxWidth(20f));
-                        //EditorGUILayout.LabelField("Duration", GUILayout.MaxWidth(130f));
                         transitionDuration = EditorGUILayout.Slider("Transition Duration", transitionDuration, 0f, 5f);
                         if (GUILayout.Button("Reset", GUILayout.Width(50f)))
                         {
@@ -413,85 +337,27 @@ namespace GabSith.WFT
 
 
 
-            if (useExistingAnimation)
+            // Select Folder
+
+            if (!useExistingAnimation)
             {
-                GUI.enabled = false;
-            }
-
-            EditorGUILayout.BeginHorizontal();
-
-            // Use a button to select the folder path 
-            if (GUILayout.Button("Select Folder"))
-            {
-                string folderPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets/", "");
-
-                if (folderPath == null || folderPath == "")
+                if (CommonActions.SelectFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey))
                 {
-                    folderPath = defaultPath;
+                    CheckRepeatedAnimation();
                 }
-
-                int index = folderPath.IndexOf("Assets/");
-
-                folderPath = folderPath.Substring(index);
-
-                if (ProjectSettingsManager.GetBool(ToggleCreatorUseGlobalKey, true))
-                    ProjectSettingsManager.SetString(GlobalFolderKey, folderPath);
-                else
-                    ProjectSettingsManager.SetString(ToggleCreatorFolderKey, folderPath);
-
-                CheckRepeatedAnimation();
             }
 
-            // Global Folder
-            Color def = GUI.backgroundColor;
-            if (ProjectSettingsManager.GetBool(ToggleCreatorUseGlobalKey, true))
-            {
-                GUI.backgroundColor = new Color { r = 0.5f, g = 1f, b = 0.5f, a = 1 };
-            }
-            if (GUILayout.Button("Use Global", GUILayout.Width(100f)))
-            {
-                //useGlobal = !useGlobal;
-                ProjectSettingsManager.SetBool(ToggleCreatorUseGlobalKey, !ProjectSettingsManager.GetBool(ToggleCreatorUseGlobalKey, true));
-            }
-            GUI.backgroundColor = def;
-
-            EditorGUILayout.EndHorizontal();
-
-
-            GUI.enabled = true;
-
-
-            // Use a label field to display the selected folder path with a custom style
-            GUIStyle pathLabelStyle = new GUIStyle(EditorStyles.label)
-            {
-                wordWrap = true // Enable word wrapping
-            };
-
-            if (useExistingAnimation && existingAnimation != null)
-                EditorGUILayout.LabelField("Selected Folder: " + Path.GetDirectoryName(AssetDatabase.GetAssetPath(existingAnimation)).Replace("\\", "/"), pathLabelStyle);
-            else
-            EditorGUILayout.LabelField("Selected Folder: " + GetFolder(), pathLabelStyle);
-
-
-
-            // Use a space to separate the fields
             EditorGUILayout.Space();
 
-            // Use a conditional statement to check if the requirements are met
             if (!RequirementsMet())
                 GUI.enabled = false;
 
-            // Custom style for the Create Toggle button
-            GUIStyle buttonStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = 15, // Increase the font size
-                fixedHeight = 35,
-                
-            };
-            // Use buttons to create the toggle and the animation clip with a custom style
-            buttonStyle.fixedHeight = 35; // Increase the button height
 
-            if (GUILayout.Button("Create Toggle", buttonStyle))
+            if (GUILayout.Button("Create Toggle", new GUIStyle(GUI.skin.button)
+            {
+                fontSize = 15,
+                fixedHeight = 35,
+            }))
             {
                 CreateToggle(toggleName, parameterName, animationName, saved, defaultStateFloat, menu, parameters, icon);
             }
@@ -503,11 +369,6 @@ namespace GabSith.WFT
             GUI.enabled = true;
 
 
-
-            if (GUILayout.Button("TEST PROXY", buttonStyle))
-            {
-                CreateProxy();
-            }
 
             // Use a fold to separate the extra buttons
             fold = EditorGUILayout.BeginFoldoutHeaderGroup(fold, "Extras");
@@ -541,13 +402,12 @@ namespace GabSith.WFT
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 
-            // Use a space to separate the fields
             EditorGUILayout.Space();
 
-            // End the vertical layout group
             EditorGUILayout.EndVertical();
 
-            // Use a space to separate the preview
+            EditorGUILayout.EndScrollView();
+
             EditorGUILayout.Space(10);
 
         }
@@ -760,8 +620,8 @@ namespace GabSith.WFT
             clip.SetCurve("___proxy___", typeof(GameObject), "m_IsActive", curve1);
 
 
-            Directory.CreateDirectory(GetFolder());
-            string clipPath = GetFolder() + "/proxy.anim";
+            Directory.CreateDirectory(CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey));
+            string clipPath = CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey) + "/proxy.anim";
             AssetDatabase.CreateAsset(clip, clipPath);
 
             clip = AssetDatabase.LoadAssetAtPath(clipPath, typeof(AnimationClip)) as AnimationClip;
@@ -794,8 +654,8 @@ namespace GabSith.WFT
                 }
 
 
-                Directory.CreateDirectory(GetFolder());
-                string clipPath = GetFolder() + "/" + animationName.Replace("/", " ") + ".anim";
+                Directory.CreateDirectory(CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey));
+                string clipPath = CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey) + "/" + animationName.Replace("/", " ") + ".anim";
                 AssetDatabase.CreateAsset(clip, clipPath);
 
                 clip = AssetDatabase.LoadAssetAtPath(clipPath, typeof(AnimationClip)) as AnimationClip;
@@ -816,6 +676,29 @@ namespace GabSith.WFT
                 EditorGUILayout.Space();
                 return false;
             }
+            if (avatarDescriptor.baseAnimationLayers[4].animatorController == null)
+            {
+                //Debug.Log("AAAAAAAAAA");
+                EditorGUILayout.HelpBox("The avatar must have an FX Layer", MessageType.Error);
+                EditorGUILayout.Space();
+                return false;
+            }
+            if (avatarDescriptor.expressionParameters == null)
+            {
+                //Debug.Log("AAAAAAAAAA");
+                EditorGUILayout.HelpBox("The avatar must have Expression Parameters", MessageType.Error);
+                EditorGUILayout.Space();
+                return false;
+            }
+            if (avatarDescriptor.expressionsMenu == null)
+            {
+                //Debug.Log("AAAAAAAAAA");
+                EditorGUILayout.HelpBox("The avatar must have an Expression Menu", MessageType.Error);
+                EditorGUILayout.Space();
+                return false;
+            }
+
+
             if (gameObject == null && !useExistingAnimation)
             {
                 EditorGUILayout.HelpBox("Object to toggle cannot be null", MessageType.Error);
@@ -872,16 +755,11 @@ namespace GabSith.WFT
             return true;
         }
 
-        void RefreshDescriptors()
-        {
-            avatarDescriptorsFromScene = SceneAsset.FindObjectsOfType<VRCAvatarDescriptor>();
-            Array.Reverse(avatarDescriptorsFromScene);
-        }
 
         void CheckRepeatedParameter(string parameter)
         {
             parameterAlreadyExists = false;
-            if (avatarDescriptor != null && !string.IsNullOrEmpty(parameter))
+            if (avatarDescriptor != null && avatarDescriptor.expressionParameters != null && !string.IsNullOrEmpty(parameter))
             {
                 foreach (var item in avatarDescriptor.expressionParameters.parameters)
                 {
@@ -899,7 +777,8 @@ namespace GabSith.WFT
             animationAlreadyExists = false;
             if (!string.IsNullOrEmpty(animationName))
             {
-                AnimationClip clip = AssetDatabase.LoadAssetAtPath(GetFolder() + "/" + animationName.Replace("/", " ") + ".anim", typeof(AnimationClip)) as AnimationClip;
+                AnimationClip clip = AssetDatabase.LoadAssetAtPath(CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey) + "/" + 
+                    animationName.Replace("/", " ") + ".anim", typeof(AnimationClip)) as AnimationClip;
                 if (clip != null)
                 {
                     // Animation already exists
@@ -956,36 +835,6 @@ namespace GabSith.WFT
             }
         }
 
-        private string GetFolder()
-        {
-            if (ProjectSettingsManager.GetBool(ToggleCreatorUseGlobalKey, true))
-            {
-                return ProjectSettingsManager.GetString(GlobalFolderKey, defaultPath);
-            }
-            else
-            {
-                return ProjectSettingsManager.GetString(ToggleCreatorFolderKey, defaultPath);
-            }
-        }
-
-        /*
-        private void GetFolders()
-        {
-            string globalFolder = ProjectSettingsManager.GetString(GlobalFolderKey, string.Empty);
-
-            if (string.IsNullOrEmpty(globalFolder))
-            {
-                ProjectSettingsManager.SetString(GlobalFolderKey, defaultPath);
-            }
-
-            string localFolder = ProjectSettingsManager.GetString(ToggleCreatorFolderKey, string.Empty);
-
-            if (string.IsNullOrEmpty(localFolder))
-            {
-                ProjectSettingsManager.SetString(ToggleCreatorFolderKey, defaultPath);
-            }
-
-        }*/
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)
         {

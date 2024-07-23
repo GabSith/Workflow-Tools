@@ -45,7 +45,7 @@ namespace GabSith.WFT
 
         bool createMode;
         string newMenuName;
-        private readonly string defaultPath = "Assets/WF Tools - GabSith/Generated";
+        //private readonly string defaultPath = "Assets/WF Tools - GabSith/Generated";
         //private string folderPath = "Assets/WF Tools - GabSith/Generated";
 
         int selectedControl = 0;
@@ -68,7 +68,7 @@ namespace GabSith.WFT
 
         private const string MenuControlFolderKey = "MenuControlFolderKey";
 
-        private const string GlobalFolderKey = "GlobalFolderKey";
+        //private const string GlobalFolderKey = "GlobalFolderKey";
 
         private const string MenuControlUseGlobalKey = "MenuControlUseGlobalKey";
         //bool useGlobal = true;
@@ -98,24 +98,9 @@ namespace GabSith.WFT
 
         void OnGUI()
         {
-            //Debug.Log(Screen.width + ", " + Screen.height );
-
-            // Use a vertical layout group to organize the fields
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Use a label field to display the title of the tool with a custom style
-            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40
-            };
-
-
-            EditorGUILayout.LabelField("Menu Control Editor", titleStyle);
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
-
-            EditorGUILayout.Space(25);
+            CommonActions.GenerateTitle("Menu Control Editor");
 
             
             if (AssetDatabase.GetAssetPath(menu) != null)
@@ -284,49 +269,7 @@ namespace GabSith.WFT
 
                                 folderPath = folderPath.Substring(index);
                             }*/
-                            EditorGUILayout.BeginHorizontal();
-                            if (GUILayout.Button("Select Folder"))
-                            {
-                                string folderPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets/", "");
-
-                                if (folderPath == null || folderPath == "")
-                                {
-                                    folderPath = defaultPath;
-                                }
-
-                                int index = folderPath.IndexOf("Assets/");
-
-                                folderPath = folderPath.Substring(index);
-
-                                if (ProjectSettingsManager.GetBool(MenuControlUseGlobalKey, true))
-                                    ProjectSettingsManager.SetString(GlobalFolderKey, folderPath);
-                                else
-                                    ProjectSettingsManager.SetString(MenuControlFolderKey, folderPath);
-                            }
-                            // Global Folder
-                            Color def = GUI.backgroundColor;
-                            if (ProjectSettingsManager.GetBool(MenuControlUseGlobalKey, true))
-                            {
-                                GUI.backgroundColor = new Color { r = 0.5f, g = 1f, b = 0.5f, a = 1 };
-                            }
-                            if (GUILayout.Button("Use Global", GUILayout.Width(100f)))
-                            {
-                                //useGlobal = !useGlobal;
-                                ProjectSettingsManager.SetBool(MenuControlUseGlobalKey, !ProjectSettingsManager.GetBool(MenuControlUseGlobalKey, true));
-                            }
-                            GUI.backgroundColor = def;
-
-                            EditorGUILayout.EndHorizontal();
-
-
-                            // Use a label field to display the selected folder path with a custom style
-                            GUIStyle pathLabelStyle = new GUIStyle(EditorStyles.label)
-                            {
-                                wordWrap = true // Enable word wrapping
-                            };
-
-                            EditorGUILayout.LabelField("Selected Folder: " + GetFolder(), pathLabelStyle);
-
+                            CommonActions.SelectFolder(MenuControlUseGlobalKey, MenuControlFolderKey);
 
                             if (GUILayout.Button("Create", GUILayout.Height(25)))
                             {
@@ -1166,8 +1109,8 @@ namespace GabSith.WFT
         {
             VRCExpressionsMenu expressionsMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
 
-            Directory.CreateDirectory(GetFolder());
-            AssetDatabase.CreateAsset(expressionsMenu, GetFolder() + "/" + name + ".asset");
+            Directory.CreateDirectory(CommonActions.GetFolder(MenuControlUseGlobalKey, MenuControlFolderKey));
+            AssetDatabase.CreateAsset(expressionsMenu, CommonActions.GetFolder(MenuControlUseGlobalKey, MenuControlFolderKey) + "/" + name + ".asset");
 
             MakeSureItDoesTheThing(expressionsMenu);
 
@@ -1277,25 +1220,6 @@ namespace GabSith.WFT
             return selectedElement;
         }
 
-        void Save()
-        {
-            control.name = name;
-            control.icon = icon;
-            control.type = controlType;
-            control.parameter =  new VRCExpressionsMenu.Control.Parameter { name = parameter };
-        }
-
-        private string GetFolder()
-        {
-            if (ProjectSettingsManager.GetBool(MenuControlUseGlobalKey, true))
-            {
-                return ProjectSettingsManager.GetString(GlobalFolderKey, defaultPath);
-            }
-            else
-            {
-                return ProjectSettingsManager.GetString(MenuControlFolderKey, defaultPath);
-            }
-        }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)
         {

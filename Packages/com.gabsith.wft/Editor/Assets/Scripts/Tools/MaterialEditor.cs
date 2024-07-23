@@ -3,13 +3,11 @@
 using UnityEditor;
 using UnityEngine;
 
-//using VRC.SDK3.Avatars.Components;
+using VRC.SDK3.Avatars.Components;
 //using VRC.SDK3.Avatars.ScriptableObjects;
 
 using System.IO;
 using System.Collections.Generic;
-
-
 
 
 
@@ -27,10 +25,13 @@ namespace GabSith.WFT
         string[] presets = new string[4] { "Off", "Active", "Quest", "VRM" };
         int preset;
 
+        Vector2 scrollPosDescriptors;
+        VRCAvatarDescriptor[] avatarDescriptorsFromScene;
+
 
         Vector2 scrollPos;
 
-        private string defaultPath = "Assets/WF Tools - GabSith/Generated";
+        //private string defaultPath = "Assets/WF Tools - GabSith/Generated";
         //private string folderPath = "Assets/WF Tools - GabSith/Generated";
 
         private const string MaterialEditorFolderKey = "MaterialEditorFolderKey";
@@ -48,40 +49,28 @@ namespace GabSith.WFT
 
         public static void ShowWindow()
         {
-            //Show existing window instance. If one doesn't exist, make one.
             EditorWindow w = EditorWindow.GetWindow(typeof(MaterialEditor), false, "Material Editor");
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_Material On Icon").image, text = "Material Editor", tooltip = "♥" };
 
         }
 
-
+        private void OnEnable()
+        {
+            CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
+        }
 
 
         void OnGUI()
         {
             defaultColor = GUI.color;
 
-            // Use a vertical layout group to organize the fields
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Use a label field to display the title of the tool with a custom style
-            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40
-            };
+            CommonActions.GenerateTitle("Material Editor");
 
+            CommonActions.FindAvatarsAsObjects(ref parent, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);
 
-            EditorGUILayout.LabelField("Material Editor", titleStyle);
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
-
-
-
-            EditorGUILayout.Space(25);
-
-
-            parent = EditorGUILayout.ObjectField("Avatar", parent, typeof(GameObject), true) as GameObject;
+            //parent = EditorGUILayout.ObjectField("Avatar", parent, typeof(GameObject), true) as GameObject;
 
             if (parent != null)
             {
@@ -156,24 +145,6 @@ namespace GabSith.WFT
 
             }
 
-            //EditorGUILayout.BeginHorizontal();
-            //EditorGUI.BeginChangeCheck();
-            /*if (GUILayout.Button("+", GUILayout.Width(20f)))
-            {
-                extraSkinnedMeshRenderers.Add(null);
-                blendShapeNamesList.Add(new string[] { });
-                blendShapeWeightsList.Add(new float[] { });
-                isBlendShapeActiveList.Add(new bool[] { });
-                scrollPosList.Add(new Vector2 { });
-            }*/
-            //EditorGUILayout.LabelField("Face Mesh", GUILayout.MaxWidth(125f));
-
-
-
-
-
-
-            //skinnedMeshRenderer = EditorGUILayout.ObjectField("Mesh", skinnedMeshRenderer, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
 
             EditorGUILayout.Space(10);
 
@@ -213,22 +184,11 @@ namespace GabSith.WFT
             EditorGUILayout.EndHorizontal();
 
 
-            //EditorGUILayout.HelpBox("AAAAAAAAAAAAAAAAAAAA", MessageType.Info);
-
-
-            //EditorGUILayout.EndHorizontal();
-
             EditorGUILayout.Space(10);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             converterMode = EditorGUILayout.ToggleLeft("Material Conversion", converterMode);
-            //converterMode = EditorGUILayout.BeginFoldoutHeaderGroup(converterMode, "Material Conversion");
-            //EditorGUILayout.HelpBox("AAAAAAAAAAAAAAAAAAAA", MessageType.Info);
-            //EditorGUILayout.EndFoldoutHeaderGroup();
-
-            //converterMode = EditorGUILayout.BeginToggleGroup("Material Conversion", converterMode);
-
 
             if (converterMode)
             {
@@ -289,87 +249,9 @@ namespace GabSith.WFT
                 // Folder
 
 
-                EditorGUILayout.Space();/*
-                // Use a button to select the folder path 
+                EditorGUILayout.Space();
 
-                if (folderPath == defaultPath)
-                {
-                    if (parent != null)
-                        folderPath += "/" + parent.name + " Materials";
-                }
-                if (GUILayout.Button("Select Folder"))
-                {
-                    folderPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets/", "");
-
-                    if (folderPath == null || folderPath == "")
-                    {
-                        folderPath = defaultPath;
-                    }
-
-                    int index = folderPath.IndexOf("Assets/");
-
-                    folderPath = folderPath.Substring(index);
-
-                    folderPath += "/" + parent.name + " Materials";
-                }
-                EditorGUILayout.LabelField("Folder: " + folderPath, new GUIStyle(EditorStyles.label) { wordWrap = true });
-
-
-                */
-
-
-
-                EditorGUILayout.BeginHorizontal();
-
-                // Use a button to select the folder path 
-                if (GUILayout.Button("Select Folder"))
-                {
-                    string folderPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets/", "");
-
-                    if (folderPath == null || folderPath == "")
-                    {
-                        folderPath = defaultPath;
-                    }
-
-                    int index = folderPath.IndexOf("Assets/");
-                    folderPath = folderPath.Substring(index);
-
-                    /*
-                    if (folderPath == defaultPath)
-                    {
-                        if (parent != null)
-                            folderPath += "/" + parent.name + " Materials";
-                    }
-                    */
-
-
-                    if (ProjectSettingsManager.GetBool(MaterialEditorUseGlobalKey, true))
-                        ProjectSettingsManager.SetString(GlobalFolderKey, folderPath);
-                    else
-                        ProjectSettingsManager.SetString(MaterialEditorFolderKey, folderPath);
-
-                }
-
-                // Global Folder
-                Color def = GUI.backgroundColor;
-                if (ProjectSettingsManager.GetBool(MaterialEditorUseGlobalKey, true))
-                {
-                    GUI.backgroundColor = new Color { r = 0.5f, g = 1f, b = 0.5f, a = 1 };
-                }
-                if (GUILayout.Button("Use Global", GUILayout.Width(100f)))
-                {
-                    ProjectSettingsManager.SetBool(MaterialEditorUseGlobalKey, !ProjectSettingsManager.GetBool(MaterialEditorUseGlobalKey, true));
-                }
-                GUI.backgroundColor = def;
-
-                EditorGUILayout.EndHorizontal();
-
-
-                EditorGUILayout.LabelField("Folder: " + GetFolder(), new GUIStyle(EditorStyles.label) { wordWrap = true });
-
-
-
-
+                CommonActions.SelectFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey);
 
                 EditorGUILayout.Space(10);
                 if (GUILayout.Button("Create Materials", new GUIStyle(GUI.skin.button) { fixedHeight = 35, fontSize = 13 }))
@@ -383,19 +265,13 @@ namespace GabSith.WFT
 
                 }
 
-                //EditorGUILayout.EndToggleGroup();
-
             }
 
             EditorGUILayout.EndVertical();
 
-
-
             EditorGUILayout.Space(10);
 
-            // End the vertical layout group
             EditorGUILayout.EndVertical();
-
         }
 
 
@@ -420,8 +296,8 @@ namespace GabSith.WFT
                 {
                     if (item.sharedMaterials[i].shader != shader)
                     {
-                        string path = GetFolder() + "/" + item.sharedMaterials[i].name + " " + mode + ".mat";
-                        Directory.CreateDirectory(GetFolder());
+                        string path = CommonActions.GetFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey) + "/" + item.sharedMaterials[i].name + " " + mode + ".mat";
+                        Directory.CreateDirectory(CommonActions.GetFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey));
                         AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(item.sharedMaterials[i]), path);
                         //AssetDatabase.CreateAsset(item.sharedMaterials[i], path);
                         AssetDatabase.ImportAsset(path);
@@ -438,41 +314,7 @@ namespace GabSith.WFT
                             MakeSureItDoesTheThing(item);
                         }
                     }
-
                 }
-
-            }
-
-        }
-
-
-        string GetPathToObject(Transform gameObject)
-        {
-            if (parent != null)
-                return (VRC.Core.ExtensionMethods.GetHierarchyPath(gameObject, parent.transform));
-            else
-                return "";
-        }
-
-        private string GetFolder()
-        {
-            if (ProjectSettingsManager.GetBool(MaterialEditorUseGlobalKey, true))
-            {
-                string folderPath = ProjectSettingsManager.GetString(GlobalFolderKey, defaultPath);
-                
-                if (parent != null)
-                    folderPath += "/" + parent.name + " Materials";
-
-                return folderPath;
-            }
-            else
-            {
-                string folderPath = ProjectSettingsManager.GetString(MaterialEditorFolderKey, defaultPath);
-
-                if (parent != null)
-                    folderPath += "/" + parent.name + " Materials";
-
-                return folderPath;
             }
         }
 

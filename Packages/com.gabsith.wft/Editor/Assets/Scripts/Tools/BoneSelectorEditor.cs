@@ -32,7 +32,6 @@ namespace GabSith.WFT
 
         public static void ShowWindow()
         {
-            //Show existing window instance. If one doesn't exist, make one.
             EditorWindow w = EditorWindow.GetWindow(typeof(BoneSelectorEditor), false, "Bone Selector");
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_AvatarSelector").image, text = "Bone Selector", tooltip = "♥" };
             w.minSize = new Vector2(300, 200);
@@ -42,9 +41,7 @@ namespace GabSith.WFT
         {
             if (avatar == null)
             {
-                //avatarDescriptor = SceneAsset.FindObjectOfType<VRCAvatarDescriptor>();
-
-                RefreshDescriptors();
+                CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
 
                 if (avatarDescriptorsFromScene.Length == 1)
                 {
@@ -64,20 +61,7 @@ namespace GabSith.WFT
             // Use a vertical layout group to organize the fields
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Use a label field to display the title of the tool with a custom style
-            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40
-            };
-
-
-            EditorGUILayout.LabelField("Bone Selector", titleStyle);
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
-
-
-            EditorGUILayout.Space(25);
+            CommonActions.GenerateTitle("Bone Selector");
 
 
             //avatar = EditorGUILayout.ObjectField("Humanoid Avatar", avatar, typeof(Animator), true) as Animator;
@@ -89,7 +73,7 @@ namespace GabSith.WFT
 
                 if (GUILayout.Button(avatarDescriptorsFromScene.Length < 2 ? "Find" : "Refresh", GUILayout.Width(70f)))
                 {
-                    RefreshDescriptors();
+                    CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
 
                     if (avatarDescriptorsFromScene.Length == 1)
                     {
@@ -109,7 +93,7 @@ namespace GabSith.WFT
                 {
                     if (item == null)
                     {
-                        RefreshDescriptors();
+                        CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
                     }
                     else if (GUILayout.Button(item != null ? item.name : ""))
                     {
@@ -328,13 +312,13 @@ namespace GabSith.WFT
             return new Rect(x, y, newWidth, newHeight);       
         }
 
-
+        /*
         void RefreshDescriptors()
         {
             avatarDescriptorsFromScene = SceneAsset.FindObjectsOfType<VRCAvatarDescriptor>();
             Array.Reverse(avatarDescriptorsFromScene);
         }
-
+        */
     }
 
 }

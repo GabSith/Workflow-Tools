@@ -4,19 +4,11 @@ using UnityEditor;
 using UnityEngine;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
-using UnityEditor.Animations;
-using UnityEngine.Animations;
 
 using System.Collections.Generic;
 using System;
 
-using System.IO;
-using Vector3 = UnityEngine.Vector3;
-
-using UnityEditor.AnimatedValues;
-using UnityEngine.Events;
-
-
+using System.Text.RegularExpressions;
 
 
 namespace GabSith.WFT
@@ -26,24 +18,20 @@ namespace GabSith.WFT
         VRCAvatarDescriptor[] avatarDescriptorsFromScene;
 
         VRCAvatarDescriptor avatarDescriptor;
-        VRCAvatarDescriptor lastAvatarDescriptor;
 
         private List<VRCExpressionsMenu> controlList = new List<VRCExpressionsMenu> { };
 
 
         //SerializedObject so;
-        //SerializedProperty _control;
-
 
         VRCExpressionParameters parameters;
         VRCExpressionsMenu menu;
-        //AnimatorController FXLayer;
 
 
         Vector2 scrollPosDescriptors;
         Vector2 scrollPosMenu;
 
-        bool refreshedAvatars = false;
+        //bool refreshedAvatars = false;
 
 
         VRCExpressionsMenu.Control copiedControl = new VRCExpressionsMenu.Control();
@@ -53,7 +41,6 @@ namespace GabSith.WFT
         private int currentlyDraggingItemIndex = -1;
         Rect ghostRect;
         Color defaultColor;
-        //public Texture2D copyTex, pasteTex, editTex, deleteTex;
 
 
         [MenuItem("GabSith/Menu Editor", false, 1)]
@@ -63,9 +50,7 @@ namespace GabSith.WFT
         {
             //Show existing window instance. If one doesn't exist, make one.
             EditorWindow w = EditorWindow.GetWindow(typeof(MenuEditor), false, "Menu Editor");
-            //GUIContent titleContent = new GUIContent("Test", (Texture2D)AssetDatabase.LoadAssetAtPath("Assets/Bon/Assets/Materials/Textures/KannaSip.png", typeof(Texture2D)));
-            //EditorGUIUtility.IconContent("d_Audio Mixer@2x");
-            //w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_Audio Mixer@2x").image, text = "Menu Editor", tooltip = "♥" };
+
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_VerticalLayoutGroup Icon").image, text = "Menu Editor", tooltip = "♥" };
             w.minSize = new Vector2(350, 400);
         }
@@ -78,11 +63,15 @@ namespace GabSith.WFT
                 {
                     //avatarDescriptor = SceneAsset.FindObjectOfType<VRCAvatarDescriptor>();
 
-                    RefreshDescriptors();
+                    CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
 
                     if (avatarDescriptorsFromScene.Length == 1)
                     {
                         avatarDescriptor = avatarDescriptorsFromScene[0];
+                        if (avatarDescriptor.customExpressions && avatarDescriptor.expressionParameters != null)
+                            parameters = avatarDescriptor.expressionParameters;
+                        if (menu == null && avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
+                            menu = avatarDescriptor.expressionsMenu;
                     }
                 }
             }
@@ -99,22 +88,19 @@ namespace GabSith.WFT
             // Use a vertical layout group to organize the fields
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Use a label field to display the title of the tool with a custom style
-            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
+            CommonActions.GenerateTitle("Menu Editor");
+
+            // Avatar Selection
+            if (CommonActions.FindAvatars(ref avatarDescriptor, ref scrollPosDescriptors, ref avatarDescriptorsFromScene))
             {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40
-            };
+                if (avatarDescriptor.customExpressions && avatarDescriptor.expressionParameters != null)
+                    parameters = avatarDescriptor.expressionParameters;
+                if (avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
+                    menu = avatarDescriptor.expressionsMenu;
+                RefreshMenu();
+            }
 
-
-            EditorGUILayout.LabelField("Menu Editor", titleStyle);
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
-
-            // Use a space to separate the fields
-            EditorGUILayout.Space(25);
-
-
+            /*
             using (new EditorGUILayout.HorizontalScope())
             {
                 // Use object fields to assign the avatar, object, and menu
@@ -184,7 +170,7 @@ namespace GabSith.WFT
                     refreshedAvatars = true;
                 }
             }
-
+            */
 
             GUIStyle menuButtons = new GUIStyle(EditorStyles.miniButton)
             {
@@ -239,6 +225,14 @@ namespace GabSith.WFT
                     }
                     EditorGUILayout.EndHorizontal();
 
+                    /*Color tempColor = GUI.backgroundColor;
+                    GUI.backgroundColor = new Color(1, 1, 1, 0.1f);
+                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                    GUI.backgroundColor = tempColor;
+                    */
+                    //EditorGUILayout.BeginVertical(GUI.skin.);
+
+
                     if (controlList[controlList.Count - 1] != null)
 
 
@@ -265,43 +259,11 @@ namespace GabSith.WFT
                                         GUILayout.Width(30), GUILayout.Height(40));
 
 
-                                    // Move UP or DOWN
-                                    /*
-                                    EditorGUILayout.BeginVertical(new GUIStyle() { fixedWidth = 35, fontSize = 10, });
-
-                                    if (i == 0)
-                                        GUI.enabled = false;
-                                    if (GUILayout.Button("▲", new GUIStyle(EditorStyles.miniButton) { fixedHeight = smallButtonsHeight }))
-                                    {
-                                        VRCExpressionsMenu.Control controlUp = controlList[controlList.Count - 1].controls[i-1];
-
-                                        controlList[controlList.Count - 1].controls[i - 1] = control;
-                                        controlList[controlList.Count - 1].controls[i] = controlUp;
-                                        EditorUtility.SetDirty(controlList[controlList.Count - 1]);
-
-                                    }
-                                    GUI.enabled = true;
-
-                                    if (i + 1 == VRCExpressionsMenu.MAX_CONTROLS || controlList[controlList.Count - 1].controls.Count == i + 1)
-                                        GUI.enabled = false;
-                                    if (GUILayout.Button("▼", new GUIStyle(EditorStyles.miniButton) { fixedHeight = smallButtonsHeight }))
-                                    {
-                                        VRCExpressionsMenu.Control controlDown = controlList[controlList.Count - 1].controls[i + 1];
-
-                                        controlList[controlList.Count - 1].controls[i + 1] = control;
-                                        controlList[controlList.Count - 1].controls[i] = controlDown;
-                                        EditorUtility.SetDirty(controlList[controlList.Count - 1]);
-
-                                    }
-                                    GUI.enabled = true;
-                                    EditorGUILayout.EndVertical();
-                                    */
-
                                     // Menu or otherwise button
 
                                     if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu) // If the control is a menu
                                     {
-                                        if (GUILayout.Button(new GUIContent(control.name + " ➔", control.icon), menuButtons, GUILayout.MaxWidth(Screen.width- 240)))
+                                        if (GUILayout.Button(new GUIContent(CleanMarkdownText(control.name) + " ➔", control.icon), menuButtons, GUILayout.MaxWidth(Screen.width- 240)))
                                         {
                                             if (control.subMenu != null)
                                                 controlList.Add(control.subMenu);
@@ -329,7 +291,7 @@ namespace GabSith.WFT
                                         }
 
 
-                                        GUILayout.Button(new GUIContent(control.name, control.icon), menuButtons, GUILayout.MaxWidth(Screen.width - 240));
+                                        GUILayout.Button(new GUIContent(CleanMarkdownText(control.name), control.icon), menuButtons, GUILayout.MaxWidth(Screen.width - 240));
                                         CheckDragAndDrop(ref control.icon, controlList[controlList.Count - 1]);
 
 
@@ -495,6 +457,9 @@ namespace GabSith.WFT
                         Repaint(); // Force the window to repaint
                     }
 
+                    //EditorGUILayout.EndVertical();
+
+
                     if (controlList[controlList.Count - 1] != null)
 
                         GUILayout.Label("Used Controls: " + controlList[controlList.Count - 1].controls.Count + " out of " + VRCExpressionsMenu.MAX_CONTROLS);
@@ -532,6 +497,20 @@ namespace GabSith.WFT
             EditorWindow.GetWindow<MenuControlEditor>("Menu Control Editor").expressionParameters = parameters;
             EditorWindow.GetWindow<MenuControlEditor>("Menu Control Editor").minSize = new Vector2(330, 310);
             EditorWindow.GetWindow<MenuControlEditor>("Menu Control Editor").avatarDescriptor = avatarDescriptor;
+        }
+
+
+        string CleanMarkdownText(string text)
+        {
+            // Pattern to match markdown-like tags
+            string pattern = @"<[^>]+>";
+
+            if (Regex.IsMatch(text, pattern))
+            {
+                return "[MD] " + Regex.Replace(text, pattern, "");
+            }
+
+            return text;
         }
 
         private void CheckDragAndDrop(ref Texture2D texture, VRCExpressionsMenu cont)
@@ -651,13 +630,6 @@ namespace GabSith.WFT
             return newControl;
         }
 
-
-        void RefreshDescriptors()
-        {
-            avatarDescriptorsFromScene = SceneAsset.FindObjectsOfType<VRCAvatarDescriptor>();
-            Array.Reverse(avatarDescriptorsFromScene);
-        }
-
         void RefreshMenu()
         {
             menu = null;
@@ -680,7 +652,7 @@ namespace GabSith.WFT
             }
             else if (!avatarDescriptor.customExpressions || avatarDescriptor.expressionParameters == null || avatarDescriptor.expressionsMenu == null) 
             {
-                Debug.Log("Expressions Menu or Expressions Parameters are null");
+                //Debug.Log("Expressions Menu or Expressions Parameters are null");
                 return false;
             }
 

@@ -3,13 +3,11 @@
 using UnityEditor;
 using UnityEngine;
 
-//using VRC.SDK3.Avatars.Components;
-//using VRC.SDK3.Avatars.ScriptableObjects;
+using VRC.SDK3.Avatars.Components;
+using VRC.SDK3.Avatars.ScriptableObjects;
 
 using System.IO;
 using System.Collections.Generic;
-
-
 
 
 
@@ -17,10 +15,10 @@ namespace GabSith.WFT
 {
     public class BoundsEditor : EditorWindow
     {
-
         GameObject parent;
         //Transform newAnchor = null;
-
+        Vector2 scrollPosDescriptors;
+        VRCAvatarDescriptor[] avatarDescriptorsFromScene;
 
         Vector3 newBoundsCenter;
         Vector3 newBoundsExtent = new Vector3(1, 1, 1);
@@ -39,31 +37,25 @@ namespace GabSith.WFT
 
         }
 
+        private void OnEnable()
+        {
+            CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
+
+            if (avatarDescriptorsFromScene.Length == 1)
+            {
+                parent = avatarDescriptorsFromScene[0].gameObject;
+            }
+        }
 
         void OnGUI()
         {
-
-            // Use a vertical layout group to organize the fields
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Use a label field to display the title of the tool with a custom style
-            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40
-            };
+            CommonActions.GenerateTitle("Bounds Editor");
 
-
-            EditorGUILayout.LabelField("Bounds Editor", titleStyle);
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
-
-
-
-            EditorGUILayout.Space(25);
-
-
-            parent = EditorGUILayout.ObjectField("Avatar", parent, typeof(GameObject), true) as GameObject;
+            // Avatar Selection
+            CommonActions.FindAvatarsAsObjects(ref parent, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);
+            //parent = EditorGUILayout.ObjectField("Avatar", parent, typeof(GameObject), true) as GameObject;
 
             if (parent != null)
             {

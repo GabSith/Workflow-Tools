@@ -51,9 +51,9 @@ namespace GabSith.WFT
 
         private const string InitialSetupFolderKey = "InitialSetupFolderKey";
         private const string InitialSetupUseGlobalKey = "InitialSetupUseGlobalKey";
-        private const string GlobalFolderKey = "GlobalFolderKey";
+        //private const string GlobalFolderKey = "GlobalFolderKey";
 
-        private string defaultPath = "Assets/WF Tools - GabSith/Generated";
+        //private string defaultPath = "Assets/WF Tools - GabSith/Generated";
         //private string folderPath = "Assets/WF Tools - GabSith/Generated";
 
         [MenuItem("GabSith/Initial Setup", false, 50)]
@@ -75,9 +75,7 @@ namespace GabSith.WFT
 
             if (avatar == null)
             {
-                //avatarDescriptor = SceneAsset.FindObjectOfType<VRCAvatarDescriptor>();
-
-                RefreshDescriptors();
+                CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
 
                 if (avatarDescriptorsFromScene.Length == 1)
                 {
@@ -90,69 +88,12 @@ namespace GabSith.WFT
 
         void OnGUI()
         {
-            //Debug.Log("w = " + Screen.width + " h = " + Screen.height);
-
-            // Use a vertical layout group to organize the fields
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            // Use a label field to display the title of the tool with a custom style
-            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter,
-                fixedHeight = 40
-            };
+            CommonActions.GenerateTitle("Initial Setup");
 
-
-            EditorGUILayout.LabelField("Initial Setup", titleStyle);
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
-
-            // Use a space to separate the fields
-            EditorGUILayout.Space(25);
-
-
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                // Use object fields to assign the avatar, object, and menu
-                avatar = (GameObject)EditorGUILayout.ObjectField("Avatar", avatar, typeof(GameObject), true);
-
-                if (GUILayout.Button(avatarDescriptorsFromScene.Length < 2 ? "Select From Scene" : "Refresh", avatarDescriptorsFromScene.Length < 2 ? GUILayout.Width(130f) : GUILayout.Width(70f)))
-                {
-                    RefreshDescriptors();
-
-                    if (avatarDescriptorsFromScene.Length == 1)
-                    {
-                        avatar = avatarDescriptorsFromScene[0].gameObject;
-                    }
-                }
-
-            }
-
-            if (avatarDescriptorsFromScene != null && avatarDescriptorsFromScene.Length > 1)
-            {
-                scrollPosDescriptors = EditorGUILayout.BeginScrollView(scrollPosDescriptors, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
-                //using (new EditorGUILayout.HorizontalScope())
-                EditorGUILayout.BeginHorizontal();
-                foreach (var item in avatarDescriptorsFromScene)
-                {
-                    if (item == null)
-                    {
-                        RefreshDescriptors();
-                    }
-                    else if (GUILayout.Button(item != null ? item.name : ""))
-                    {
-                        avatar = item.gameObject;
-                    }
-                }
-                EditorGUILayout.EndHorizontal();
-                EditorGUILayout.EndScrollView();
-
-                // Use a space to separate the fields
-                EditorGUILayout.Space();
-            }
-
-
-            GUI.enabled = true;
+            // Avatar Selection
+            CommonActions.FindAvatarsAsObjects(ref avatar, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);
 
 
             EditorGUILayout.Space(15);
@@ -184,10 +125,8 @@ namespace GabSith.WFT
                         FXLayer = null;
                     }
 
-                    //if (avatarDescriptor.customExpressions && avatarDescriptor.expressionParameters != null)
                     parameters = avatarDescriptor.expressionParameters;
 
-                    //if (avatar.GetComponent<VRCAvatarDescriptor>().expressionsMenu != null)
                     menu = avatarDescriptor.expressionsMenu;
                 }
                 else
@@ -265,14 +204,7 @@ namespace GabSith.WFT
                     }
                     else
                     {
-                        //EditorGUILayout.BeginHorizontal();
                         EditorGUILayout.HelpBox("FX Layer not found.", MessageType.Warning);
-                        /*if (GUILayout.Button("Create FX Layer", GUILayout.Height(38 ), GUILayout.Width(200)))
-                        {
-                            avatarDescriptor.baseAnimationLayers[4].animatorController = CreateFXLayer(FXLayerName);
-                        }
-                        EditorGUILayout.EndHorizontal();*/
-
 
                         EditorGUILayout.BeginHorizontal();
                         FXLayerName = EditorGUILayout.TextField("FX Layer Name", FXLayerName);
@@ -360,8 +292,6 @@ namespace GabSith.WFT
                         avatar.AddComponent<VRCAvatarDescriptor>();
                         MakeSureItDoesTheThing(avatar);
 
-                        //ad.baseAnimationLayers = new VRCAvatarDescriptor.CustomAnimLayer[5];
-
                     }
 
                 }
@@ -436,7 +366,7 @@ namespace GabSith.WFT
             GUI.enabled = true;
             */
 
-
+            /*
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Select Folder"))
             {
@@ -470,39 +400,12 @@ namespace GabSith.WFT
             GUI.backgroundColor = def;
 
             EditorGUILayout.EndHorizontal();
-
-
-
-
-
-
-
-            // Use a label field to display the selected folder path with a custom style
-            GUIStyle pathLabelStyle = new GUIStyle(EditorStyles.label)
-            {
-                wordWrap = true // Enable word wrapping
-            };
-
-            EditorGUILayout.LabelField("Selected Folder: " + GetFolder(), pathLabelStyle);
-
-
-            /*
-            // Use a space to separate the fields
-            EditorGUILayout.Space();
-
-            // Custom style for the Create Toggle button
-            GUIStyle buttonStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = 15, // Increase the font size
-                fixedHeight = 35,
-                
-            };
-
-            if (GUILayout.Button("Create Toggle", buttonStyle))
-            {
-            }
             */
-            // Use a space to separate the fields
+
+            CommonActions.SelectFolder(InitialSetupUseGlobalKey, InitialSetupFolderKey);
+
+
+
             EditorGUILayout.Space();
 
             GUI.enabled = true;
@@ -679,12 +582,6 @@ namespace GabSith.WFT
         }
 
 
-        void RefreshDescriptors()
-        {
-            avatarDescriptorsFromScene = SceneAsset.FindObjectsOfType<VRCAvatarDescriptor>();
-            Array.Reverse(avatarDescriptorsFromScene);
-        }
-
         bool CheckRepeatedMenu(string path)
         {
             VRCExpressionsMenu tempMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(path);
@@ -728,14 +625,7 @@ namespace GabSith.WFT
 
         private string GetFolder()
         {
-            if (ProjectSettingsManager.GetBool(InitialSetupUseGlobalKey, true))
-            {
-                return ProjectSettingsManager.GetString(GlobalFolderKey, defaultPath);
-            }
-            else
-            {
-                return ProjectSettingsManager.GetString(InitialSetupFolderKey, defaultPath);
-            }
+            return CommonActions.GetFolder(InitialSetupUseGlobalKey, InitialSetupFolderKey);
         }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)

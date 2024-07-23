@@ -1,4 +1,7 @@
-﻿using UnityEditor;
+﻿#if UNITY_EDITOR
+
+
+using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using VRC.SDK3.Avatars.Components;
@@ -37,7 +40,7 @@ namespace GabSith.WFT
 
         //bool changesMadeGlobal = false;
         bool[] changesMadeGlobalDelay = new bool[5] { false, false, false, false, false };
-        bool refreshedAvatars = false;
+        //bool refreshedAvatars = false;
         int selectedParamMode;
         Color defaultColor;
 
@@ -69,9 +72,7 @@ namespace GabSith.WFT
             {
                 if (avatarDescriptor == null)
                 {
-                    //avatarDescriptor = SceneAsset.FindObjectOfType<VRCAvatarDescriptor>();
-
-                    RefreshDescriptors();
+                    CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
 
                     if (avatarDescriptorsFromScene.Length == 1)
                     {
@@ -82,8 +83,6 @@ namespace GabSith.WFT
 
             defaultColor = GUI.color;
 
-            //items = new List<string>() { "Item 1", "Item 2", "Item 3", "Item 4" };
-            //items = new List<string>() { "Item 1", "Item 2", "Item 3", "Item 4" };
         }
 
         private void OnGUI()
@@ -92,87 +91,13 @@ namespace GabSith.WFT
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             // Title
-            {
-                // Use a label field to display the title of the tool with a custom style
-                GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
-                {
-                    fontSize = 20,
-                    alignment = TextAnchor.MiddleCenter,
-                    fixedHeight = 40
-                };
+            CommonActions.GenerateTitle("Parameter Editor");
 
-
-                EditorGUILayout.LabelField("Parameter Editor", titleStyle);
-                EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleCenter, fixedHeight = 35 });
-
-                // Use a space to separate the fields
-                EditorGUILayout.Space(25);
-            }
             // Avatar Selection
-            {
+            CommonActions.FindAvatars(ref avatarDescriptor, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);
+            
 
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    // Use object fields to assign the avatar, object, and menu
-                    avatarDescriptor = (VRCAvatarDescriptor)EditorGUILayout.ObjectField("Avatar", avatarDescriptor, typeof(VRCAvatarDescriptor), true);
-
-                    if (GUILayout.Button(avatarDescriptorsFromScene.Length < 2 ? "Select From Scene" : "Refresh", avatarDescriptorsFromScene.Length < 2 ? GUILayout.Width(130f) : GUILayout.Width(70f)))
-                    {
-                        RefreshDescriptors();
-
-                        if (avatarDescriptorsFromScene.Length == 1)
-                        {
-                            avatarDescriptor = avatarDescriptorsFromScene[0];
-                        }
-                    }
-
-                }
-                if (avatarDescriptor != null)
-                {
-                    refreshedAvatars = false;
-                }
-                else
-                {
-                    if (!refreshedAvatars)
-                    {
-                        //Debug.Log("avatarDescriptor is null!");
-                        RefreshDescriptors();
-
-                        if (avatarDescriptorsFromScene.Length == 1)
-                        {
-                            avatarDescriptor = avatarDescriptorsFromScene[0];
-                        }
-                        refreshedAvatars = true;
-                    }
-                }
-
-
-                if (avatarDescriptorsFromScene != null && avatarDescriptorsFromScene.Length > 1)
-                {
-                    scrollPosDescriptors = EditorGUILayout.BeginScrollView(scrollPosDescriptors, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
-                    //using (new EditorGUILayout.HorizontalScope())
-                    EditorGUILayout.BeginHorizontal();
-                    foreach (var item in avatarDescriptorsFromScene)
-                    {
-                        if (item == null)
-                        {
-                            RefreshDescriptors();
-                        }
-                        else if (GUILayout.Button(item != null ? item.name : ""))
-                        {
-                            avatarDescriptor = item;
-                        }
-                    }
-                    EditorGUILayout.EndHorizontal();
-                    EditorGUILayout.EndScrollView();
-
-                    // Use a space to separate the fields
-                    EditorGUILayout.Space();
-                }
-
-            }
-
-
+         
             // Mode Toolbar
             GUILayout.Space(10);
             selectedParamMode = GUILayout.Toolbar(selectedParamMode, selectedConvModes);
@@ -1428,12 +1353,7 @@ namespace GabSith.WFT
 
         }
 
-        void RefreshDescriptors()
-        {
-            avatarDescriptorsFromScene = SceneAsset.FindObjectsOfType<VRCAvatarDescriptor>();
-            Array.Reverse(avatarDescriptorsFromScene);
-        }
-
 
     }
 }
+#endif
