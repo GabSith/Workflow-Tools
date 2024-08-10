@@ -13,6 +13,22 @@ namespace GabSith.WFT
     public class CommonActions
     {
 
+        /*
+        private static bool wasPlaying = false;
+
+        public static bool HasPlayModeChanged()
+        {
+            bool isPlaying = EditorApplication.isPlaying;
+            if (isPlaying != wasPlaying)
+            {
+                wasPlaying = isPlaying;
+                return true;
+            }
+            return false;
+        }
+        */
+
+
         public static void GenerateTitle(string name)
         {
             Color tempColor = GUI.backgroundColor;
@@ -43,13 +59,17 @@ namespace GabSith.WFT
         {
             bool changesMade = false;
 
+            if (avatarDescriptorsFromScene == null)
+            {
+                RefreshDescriptors(ref avatarDescriptor, ref avatarDescriptorsFromScene);
+            }
+            if (avatarDescriptor == null)
+            {
+                RefreshDescriptors(ref avatarDescriptor, ref avatarDescriptorsFromScene);
+            }
+
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (avatarDescriptorsFromScene == null)
-                {
-                    RefreshDescriptors(ref avatarDescriptorsFromScene);
-                }
-
                 EditorGUI.BeginChangeCheck();
                 avatarDescriptor = (VRCAvatarDescriptor)EditorGUILayout.ObjectField("Avatar", avatarDescriptor, typeof(VRCAvatarDescriptor), true);
                 if (EditorGUI.EndChangeCheck())
@@ -59,7 +79,7 @@ namespace GabSith.WFT
 
                 if (GUILayout.Button(avatarDescriptorsFromScene.Length < 2 ? "Select From Scene" : "Refresh", avatarDescriptorsFromScene.Length < 2 ? GUILayout.Width(130f) : GUILayout.Width(70f)))
                 {
-                    RefreshDescriptors(ref avatarDescriptorsFromScene);
+                    RefreshDescriptors(ref avatarDescriptor, ref avatarDescriptorsFromScene);
 
                     if (avatarDescriptorsFromScene.Length == 1)
                     {
@@ -78,7 +98,7 @@ namespace GabSith.WFT
                 {
                     if (item == null)
                     {
-                        RefreshDescriptors(ref avatarDescriptorsFromScene);
+                        RefreshDescriptors(ref avatarDescriptor, ref avatarDescriptorsFromScene);
                     }
                     else if (GUILayout.Button(item != null ? item.name : ""))
                     {
@@ -98,13 +118,13 @@ namespace GabSith.WFT
         {
             bool changesMade = false;
 
+            if (avatarDescriptorsFromScene == null)
+            {
+                RefreshDescriptors(ref avatarDescriptor, ref avatarDescriptorsFromScene);
+            }
+
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (avatarDescriptorsFromScene == null)
-                {
-                    RefreshDescriptors(ref avatarDescriptorsFromScene);
-                }
-
                 EditorGUI.BeginChangeCheck();
                 avatarDescriptor = (GameObject)EditorGUILayout.ObjectField("Avatar", avatarDescriptor, typeof(GameObject), true);
                 if (EditorGUI.EndChangeCheck())
@@ -114,7 +134,7 @@ namespace GabSith.WFT
 
                 if (GUILayout.Button(avatarDescriptorsFromScene.Length < 2 ? "Select From Scene" : "Refresh", avatarDescriptorsFromScene.Length < 2 ? GUILayout.Width(130f) : GUILayout.Width(70f)))
                 {
-                    RefreshDescriptors(ref avatarDescriptorsFromScene);
+                    RefreshDescriptors(ref avatarDescriptor, ref avatarDescriptorsFromScene);
 
                     if (avatarDescriptorsFromScene.Length == 1)
                     {
@@ -132,7 +152,7 @@ namespace GabSith.WFT
                 {
                     if (item == null)
                     {
-                        RefreshDescriptors(ref avatarDescriptorsFromScene);
+                        RefreshDescriptors(ref avatarDescriptor, ref avatarDescriptorsFromScene);
                     }
                     else if (GUILayout.Button(item != null ? item.name : ""))
                     {
@@ -149,11 +169,38 @@ namespace GabSith.WFT
             return changesMade;
         }
 
+        // Find VRCAvatarDescriptors
+        public static void RefreshDescriptors(ref VRCAvatarDescriptor avatarDescriptor, ref VRCAvatarDescriptor[] avatarDescriptorsFromScene)
+        {
+            avatarDescriptorsFromScene = SceneAsset.FindObjectsOfType<VRCAvatarDescriptor>();
+            Array.Reverse(avatarDescriptorsFromScene);
+
+            if (avatarDescriptorsFromScene.Length == 1)
+            {
+                avatarDescriptor = avatarDescriptorsFromScene[0];
+            }
+        }
+
+        // Find GameObjects
+        public static void RefreshDescriptors(ref GameObject avatarDescriptor, ref VRCAvatarDescriptor[] avatarDescriptorsFromScene)
+        {
+            avatarDescriptorsFromScene = SceneAsset.FindObjectsOfType<VRCAvatarDescriptor>();
+            Array.Reverse(avatarDescriptorsFromScene);
+
+            if (avatarDescriptorsFromScene.Length == 1)
+            {
+                avatarDescriptor = avatarDescriptorsFromScene[0].gameObject;
+            }
+        }
+
+        // Just Find
         public static void RefreshDescriptors(ref VRCAvatarDescriptor[] avatarDescriptorsFromScene)
         {
             avatarDescriptorsFromScene = SceneAsset.FindObjectsOfType<VRCAvatarDescriptor>();
             Array.Reverse(avatarDescriptorsFromScene);
         }
+
+
 
         public static bool SelectFolder(string LocalUseGlobalKey, string LocalFolderKey, string LocalSuffixKey, ref string suffix)
         {

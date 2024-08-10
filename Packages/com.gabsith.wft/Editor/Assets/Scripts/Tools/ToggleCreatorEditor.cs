@@ -71,7 +71,7 @@ namespace GabSith.WFT
 
 
 
-        [MenuItem("GabSith/Toggle Creator", false, 1)]
+        [MenuItem("GabSith/Toggle Creator", false, 101)]
 
 
         public static void ShowWindow()
@@ -121,7 +121,10 @@ namespace GabSith.WFT
 
             // Avatar Selection
             CommonActions.FindAvatars(ref avatarDescriptor, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);
-
+            if (avatarDescriptor == null)
+            {
+                CommonActions.RefreshDescriptors(ref avatarDescriptor, ref avatarDescriptorsFromScene);
+            }
 
             if (useExistingAnimation)
             {

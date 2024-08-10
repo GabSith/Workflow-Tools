@@ -66,7 +66,7 @@ namespace GabSith.WFT
         string suffix;
 
 
-        [MenuItem("GabSith/Hue Shift Creator", false, 50)]
+        [MenuItem("GabSith/Niche/Hue Shift Creator", false, 1000)]
 
 
         public static void ShowWindow()
@@ -104,7 +104,6 @@ namespace GabSith.WFT
             CommonActions.GenerateTitle("Hue Shift Creator");
 
             //RefreshDescriptors();
-
 
             // Avatar Selection
             CommonActions.FindAvatars(ref avatarDescriptor, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);

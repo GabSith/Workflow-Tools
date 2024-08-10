@@ -27,7 +27,7 @@ namespace GabSith.WFT
         Vector2 scrollPosDescriptors;
         VRCAvatarDescriptor[] avatarDescriptorsFromScene;
 
-        [MenuItem("GabSith/Bone Selector", false, 2)]
+        [MenuItem("GabSith/Bone Selector %#&B", false, 501)]
 
 
         public static void ShowWindow()

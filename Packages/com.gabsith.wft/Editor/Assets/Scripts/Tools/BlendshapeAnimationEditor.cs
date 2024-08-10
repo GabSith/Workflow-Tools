@@ -49,7 +49,7 @@ namespace GabSith.WFT
         Vector2 scrollPos;
 
 
-        [MenuItem("GabSith/Blendshape Animation Creator", false, 2)]
+        [MenuItem("GabSith/Niche/Blendshape Animation Creator", false, 900)]
 
 
         public static void ShowWindow()

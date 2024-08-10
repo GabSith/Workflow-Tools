@@ -30,7 +30,7 @@ namespace GabSith.WFT
         List<bool> individualLinks = new List<bool>();
 
 
-        [MenuItem("GabSith/Bounds Editor", false, 2)]
+        [MenuItem("GabSith/Bounds Editor", false, 503)]
 
 
         public static void ShowWindow()
@@ -43,12 +43,7 @@ namespace GabSith.WFT
 
         private void OnEnable()
         {
-            CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
-
-            if (avatarDescriptorsFromScene.Length == 1)
-            {
-                parent = avatarDescriptorsFromScene[0].gameObject;
-            }
+            CommonActions.RefreshDescriptors(ref parent, ref avatarDescriptorsFromScene);
         }
 
         void OnGUI()

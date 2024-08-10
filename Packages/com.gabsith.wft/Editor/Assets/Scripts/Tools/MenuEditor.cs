@@ -22,7 +22,8 @@ namespace GabSith.WFT
         private List<VRCExpressionsMenu> controlList = new List<VRCExpressionsMenu> { };
 
 
-        //SerializedObject so;
+        bool useSelected = false;
+        string previousSelection;
 
         VRCExpressionParameters parameters;
         VRCExpressionsMenu menu;
@@ -53,28 +54,26 @@ namespace GabSith.WFT
 
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_VerticalLayoutGroup Icon").image, text = "Menu Editor", tooltip = "♥" };
             w.minSize = new Vector2(350, 400);
+            w.autoRepaintOnSceneChange = true;
         }
 
         private void OnEnable()
         {
-            if (!EditorApplication.isPlaying)
+
+            if (avatarDescriptor == null)
             {
-                if (avatarDescriptor == null)
+                CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
+
+                if (avatarDescriptorsFromScene.Length == 1)
                 {
-                    //avatarDescriptor = SceneAsset.FindObjectOfType<VRCAvatarDescriptor>();
-
-                    CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
-
-                    if (avatarDescriptorsFromScene.Length == 1)
-                    {
-                        avatarDescriptor = avatarDescriptorsFromScene[0];
-                        if (avatarDescriptor.customExpressions && avatarDescriptor.expressionParameters != null)
-                            parameters = avatarDescriptor.expressionParameters;
-                        if (menu == null && avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
-                            menu = avatarDescriptor.expressionsMenu;
-                    }
+                    avatarDescriptor = avatarDescriptorsFromScene[0];
+                    if (avatarDescriptor.customExpressions && avatarDescriptor.expressionParameters != null)
+                        parameters = avatarDescriptor.expressionParameters;
+                    if (menu == null && avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
+                        menu = avatarDescriptor.expressionsMenu;
                 }
-            }
+
+            } 
 
             defaultColor = GUI.color;
 
@@ -85,97 +84,87 @@ namespace GabSith.WFT
         {
             Event e = Event.current;
 
-            // Use a vertical layout group to organize the fields
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
+            // Tittle
             CommonActions.GenerateTitle("Menu Editor");
 
             // Avatar Selection
-            if (CommonActions.FindAvatars(ref avatarDescriptor, ref scrollPosDescriptors, ref avatarDescriptorsFromScene))
+            if (CommonActions.FindAvatars(ref avatarDescriptor, ref scrollPosDescriptors, ref avatarDescriptorsFromScene) && !useSelected)
             {
-                if (avatarDescriptor.customExpressions && avatarDescriptor.expressionParameters != null)
-                    parameters = avatarDescriptor.expressionParameters;
-                if (avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
-                    menu = avatarDescriptor.expressionsMenu;
+                if (avatarDescriptor != null)
+                {
+                    if (avatarDescriptor.customExpressions && avatarDescriptor.expressionParameters != null)
+                        parameters = avatarDescriptor.expressionParameters;
+                    if (avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
+                        menu = avatarDescriptor.expressionsMenu;
+                }
+
+                if (useSelected)
+                {
+                    if (Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets).Length > 0)
+                        menu = Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets)[0];
+                }
+
                 RefreshMenu();
             }
 
-            /*
-            using (new EditorGUILayout.HorizontalScope())
+            EditorGUILayout.Space();
+
+            // Use Selected
+            if (useSelected)
             {
-                // Use object fields to assign the avatar, object, and menu
-                avatarDescriptor = (VRCAvatarDescriptor)EditorGUILayout.ObjectField("Avatar", avatarDescriptor, typeof(VRCAvatarDescriptor), true);
-                if (avatarDescriptor != lastAvatarDescriptor)
+                GUI.color = new Color(0.5f, 0.8f, 0.5f);
+            }
+            if (GUILayout.Button("Use Selected Menu"))
+            {
+                useSelected = !useSelected;
+                previousSelection = "";
+
+                if (useSelected)
                 {
-                    RefreshMenu();
-                    lastAvatarDescriptor = avatarDescriptor;
+                    if (Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets).Length > 0)
+                        menu = Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets)[0];
                 }
-
-                if (GUILayout.Button(avatarDescriptorsFromScene.Length < 2 ? "Select From Scene" : "Refresh", avatarDescriptorsFromScene.Length < 2 ? GUILayout.Width(130f) : GUILayout.Width(70f)))
+                else
                 {
-                    RefreshDescriptors();
-
-                    if (avatarDescriptorsFromScene.Length == 1)
+                    if (avatarDescriptor != null)
                     {
-                        avatarDescriptor = avatarDescriptorsFromScene[0];
+                        if (avatarDescriptor.customExpressions && avatarDescriptor.expressionParameters != null)
+                            parameters = avatarDescriptor.expressionParameters;
+                        if (avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
+                            menu = avatarDescriptor.expressionsMenu;
                     }
                 }
+                RefreshMenu();
 
             }
+            GUI.color = defaultColor;
 
-            if (avatarDescriptorsFromScene != null && avatarDescriptorsFromScene.Length > 1)
+
+            // Selection Changed
+            if (useSelected)
             {
-                scrollPosDescriptors = EditorGUILayout.BeginScrollView(scrollPosDescriptors, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
-                //using (new EditorGUILayout.HorizontalScope())
-                EditorGUILayout.BeginHorizontal();
-                foreach (var item in avatarDescriptorsFromScene)
+                VRCExpressionsMenu[] selection = Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets);
+                if (selection.Length > 0)
                 {
-                    if (item == null)
+                    string selectionID = selection[0].GetInstanceID().ToString();
+                    if (selectionID != previousSelection)
                     {
-                        RefreshDescriptors();
-                    }
-                    else if (GUILayout.Button(item != null ? item.name : ""))
-                    {
-                        avatarDescriptor = item;
+                        menu = selection[0];
+                        RefreshMenu();
+
+                        previousSelection = selectionID;
                     }
                 }
-                EditorGUILayout.EndHorizontal();
-                EditorGUILayout.EndScrollView();
-
-                // Use a space to separate the fields
-                EditorGUILayout.Space();
             }
 
-
-            if (avatarDescriptor != null)
-            {
-                refreshedAvatars = false;
-
-                if (avatarDescriptor.customExpressions && avatarDescriptor.expressionParameters != null)
-                    parameters = avatarDescriptor.expressionParameters;
-                if (menu == null && avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
-                    menu = avatarDescriptor.expressionsMenu;
-            }
-            else
-            {
-                if (!refreshedAvatars)
-                {
-                    //Debug.Log("avatarDescriptor is null!");
-                    RefreshDescriptors();
-
-                    if (avatarDescriptorsFromScene.Length == 1)
-                    {
-                        avatarDescriptor = avatarDescriptorsFromScene[0];
-                    }
-                    refreshedAvatars = true;
-                }
-            }
-            */
 
             GUIStyle menuButtons = new GUIStyle(EditorStyles.miniButton)
             {
                 fontSize = 13,
-                fixedHeight = 40
+                fixedHeight = 40,
+                richText = true 
             };
 
             GUIStyle menuButtonsEmpty = new GUIStyle(menuButtons)
@@ -197,13 +186,16 @@ namespace GabSith.WFT
                 if (controlList.Count == 0)
                     controlList.Add(menu);
 
+                int lastIndex = controlList.Count - 1;
+                VRCExpressionsMenu lastMenu = controlList[lastIndex];
+
                 {
                     EditorGUILayout.BeginHorizontal();
                     //using (new EditorGUILayout.HorizontalScope())
                     {
                         //GUILayout.Label("Current Menu: " + controlList[controlList.Count - 1].name);
                         GUILayout.Label("Current Menu: ");
-                        EditorGUILayout.ObjectField(controlList[controlList.Count - 1], typeof(VRCExpressionsMenu), false);
+                        EditorGUILayout.ObjectField(lastMenu, typeof(VRCExpressionsMenu), false);
 
                         if (controlList.Count == 1)
                         {
@@ -212,7 +204,7 @@ namespace GabSith.WFT
 
                         if (GUILayout.Button("Back", GUILayout.Width(123)))
                         {
-                            controlList.RemoveAt(controlList.Count - 1);
+                            controlList.RemoveAt(lastIndex);
                         }
 
                         GUI.enabled = true;
@@ -222,228 +214,215 @@ namespace GabSith.WFT
                         {
                             RefreshMenu();
                         }
+
+
                     }
                     EditorGUILayout.EndHorizontal();
 
-                    /*Color tempColor = GUI.backgroundColor;
-                    GUI.backgroundColor = new Color(1, 1, 1, 0.1f);
-                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                    GUI.backgroundColor = tempColor;
-                    */
-                    //EditorGUILayout.BeginVertical(GUI.skin.);
 
-
-                    if (controlList[controlList.Count - 1] != null)
-
-
-                    for (int i = 0; i < VRCExpressionsMenu.MAX_CONTROLS; i++)
+                    if (lastMenu != null)
                     {
-                        if (controlList[controlList.Count - 1].controls.Count > i)
+                        for (int i = 0; i < VRCExpressionsMenu.MAX_CONTROLS; i++)
                         {
-                            if (i == currentlyDraggingItemIndex)
+                            if (lastMenu.controls.Count > i)
                             {
-                                GUI.color = Color.grey; // Change the color of the item being dragged
+                                if (i == currentlyDraggingItemIndex)
+                                {
+                                    GUI.color = Color.grey; // Change the color of the item being dragged
+                                }
+
+
+                                // Actual Control
+                                VRCExpressionsMenu.Control control = lastMenu.controls[i];
+                                {
+                                    using (new EditorGUILayout.HorizontalScope(new GUIStyle() { fixedHeight = 45 }))
+                                    {
+                                        int smallButtonsHeight = 19;
+
+
+                                        GUIStyle style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
+                                        GUILayout.Label(EditorGUIUtility.IconContent("_Menu@2x"), style, GUILayout.Height(EditorGUIUtility.singleLineHeight),
+                                            GUILayout.Width(30), GUILayout.Height(40));
+
+
+                                        // Menu or otherwise button
+                                        float width = Screen.width - 241f;
+
+                                        if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu) // If the control is a menu
+                                        {
+                                            if (GUILayout.Button(new GUIContent(control.name + " ➔", control.icon), menuButtons, GUILayout.MaxWidth(width)))
+                                            {
+                                                if (control.subMenu != null)
+                                                    controlList.Add(control.subMenu);
+                                            }
+                                            CheckDragAndDrop(ref control.icon, ref control.subMenu, lastMenu);
+                                        }
+                                        else
+                                        {
+                                            Color def = GUI.backgroundColor;
+
+                                            switch (control.type)
+                                            {
+                                                case VRCExpressionsMenu.Control.ControlType.Button:
+                                                    GUI.backgroundColor = new Color { r = 1f, g = 1f, b = 0.7f, a = 1 };
+                                                    break;
+                                                case VRCExpressionsMenu.Control.ControlType.Toggle:
+                                                    GUI.backgroundColor = new Color { r = 0.7f, g = 0.7f, b = 1f, a = 1 };
+                                                    break;
+                                                case VRCExpressionsMenu.Control.ControlType.RadialPuppet:
+                                                    GUI.backgroundColor = new Color { r = 1f, g = 0.7f, b = 1f, a = 1 };
+                                                    break;
+                                                default:
+                                                    GUI.backgroundColor = new Color { r = 1f, g = 0.7f, b = 0.7f, a = 1 };
+                                                    break;
+                                            }
+
+
+                                            GUILayout.Button(new GUIContent(control.name, control.icon), menuButtons, GUILayout.MaxWidth(width));
+                                            CheckDragAndDrop(ref control.icon, lastMenu);
+
+
+                                            GUI.backgroundColor = def;
+                                            GUI.enabled = true;
+                                        }
+
+
+                                        // The rest
+
+                                        // Edit
+                                        if (GUILayout.Button(new GUIContent("Edit", "Opens the Menu Control Editor"), menuButtons, GUILayout.Width(60)))
+                                        {
+
+                                            OpenWindow(control, i, lastMenu, parameters);
+
+                                        }
+
+
+                                        // Copy Paste
+
+                                        // Copy
+                                        EditorGUILayout.BeginVertical(new GUIStyle() { fixedWidth = 60, fontSize = 8, });
+                                        if (GUILayout.Button(new GUIContent("Copy"), new GUIStyle(EditorStyles.miniButton) { fixedHeight = smallButtonsHeight, fontSize = 10 }))
+                                        {
+                                            isCopyActive = true;
+                                            copiedControl = Duplicate(lastMenu.controls[i]);
+
+                                        }
+
+                                        // Paste
+                                        if (!isCopyActive)
+                                            GUI.enabled = false;
+                                        if (GUILayout.Button(new GUIContent("Paste"), new GUIStyle(EditorStyles.miniButton) { fixedHeight = smallButtonsHeight, fontSize = 10 }))
+                                        {
+                                            lastMenu.controls[i] = Duplicate(copiedControl);
+                                            //controlList[controlList.Count - 1].controls.RemoveAt(i);
+                                            //controlList[controlList.Count - 1].controls.Add(Duplicate(copiedControl));
+                                            EditorUtility.SetDirty(lastMenu);
+                                        }
+                                        GUI.enabled = true;
+
+                                        EditorGUILayout.EndVertical();
+
+
+
+
+                                        // Delete
+                                        if (GUILayout.Button(new GUIContent("Delete"), menuButtons, GUILayout.Width(60)))
+                                        {
+                                            lastMenu.controls.RemoveAt(i);
+                                            EditorUtility.SetDirty(lastMenu);
+                                        }
+
+                                    }
+
+                                }
+
+                                GUI.color = defaultColor; // Reset color
+
+
+                                // Drag Position
+                                Rect dropArea = GUILayoutUtility.GetLastRect();
+                                if (e.type == EventType.MouseDown && dropArea.Contains(e.mousePosition))
+                                {
+                                    currentlyDraggingItemIndex = i;
+                                    EditorGUIUtility.SetWantsMouseJumping(1);
+                                }
+                                else if (e.type == EventType.MouseDrag && currentlyDraggingItemIndex > -1)
+                                {
+                                    e.Use();
+                                }
+                                else if (e.type == EventType.MouseUp && dropArea.Contains(e.mousePosition) && currentlyDraggingItemIndex > -1)
+                                {
+                                    //controlList[controlList.Count - 1].controls = new List<VRCExpressionsMenu.Control>(items);
+                                    currentlyDraggingItemIndex = -1;
+                                    EditorGUIUtility.SetWantsMouseJumping(0);
+                                    Repaint(); // Force the window to repaint
+                                }
+
+                                // Draw a ghost item at the mouse position while dragging
+                                if (currentlyDraggingItemIndex > -1)
+                                {
+                                    ghostRect = new Rect(dropArea.x, e.mousePosition.y - (dropArea.height / 2), dropArea.width, dropArea.height);
+                                    //EditorGUI.DrawRect(ghostRect, new Color(0.5f, 0.5f, 0.5f, 0.2f));
+                                }
+
+                                if (currentlyDraggingItemIndex > -1 && dropArea.Contains(e.mousePosition))
+                                {
+                                    VRCExpressionsMenu.Control temp = lastMenu.controls[currentlyDraggingItemIndex];
+                                    lastMenu.controls.RemoveAt(currentlyDraggingItemIndex);
+                                    lastMenu.controls.Insert(i, temp);
+                                    currentlyDraggingItemIndex = i;
+                                    Repaint(); // Force the window to repaint
+                                }
+
                             }
 
-
-                            // Actual Control
-                            VRCExpressionsMenu.Control control = controlList[controlList.Count - 1].controls[i];
+                            // New Control
+                            else
                             {
+                                Color def = GUI.backgroundColor;
+                                GUI.backgroundColor = new Color { r = 0.4f, g = 1f, b = 0.4f, a = 1 };
+
                                 using (new EditorGUILayout.HorizontalScope(new GUIStyle() { fixedHeight = 45 }))
                                 {
-                                    int smallButtonsHeight = 19;
-
-
-                                    GUIStyle style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
-                                    GUILayout.Label(EditorGUIUtility.IconContent("_Menu@2x"), style, GUILayout.Height(EditorGUIUtility.singleLineHeight), 
-                                        GUILayout.Width(30), GUILayout.Height(40));
-
-
-                                    // Menu or otherwise button
-
-                                    if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu) // If the control is a menu
+                                    if (GUILayout.Button("+ Create Control +", menuButtonsEmpty))
                                     {
-                                        if (GUILayout.Button(new GUIContent(CleanMarkdownText(control.name) + " ➔", control.icon), menuButtons, GUILayout.MaxWidth(Screen.width- 240)))
+                                        VRCExpressionsMenu.Control newControl = new VRCExpressionsMenu.Control
                                         {
-                                            if (control.subMenu != null)
-                                                controlList.Add(control.subMenu);
-                                        }
-                                        CheckDragAndDrop(ref control.icon, controlList[controlList.Count - 1]);
-                                    }
-                                    else
-                                    {
-                                        Color def = GUI.backgroundColor;
+                                            name = "New Control",
+                                            parameter = new VRCExpressionsMenu.Control.Parameter { name = "" },
+                                            subParameters = new VRCExpressionsMenu.Control.Parameter[4] { new VRCExpressionsMenu.Control.Parameter { },
+                                        new VRCExpressionsMenu.Control.Parameter { }, new VRCExpressionsMenu.Control.Parameter { }, new VRCExpressionsMenu.Control.Parameter { } },
+                                            type = VRCExpressionsMenu.Control.ControlType.Toggle,
+                                            icon = null,
 
-                                        switch (control.type)
-                                        {
-                                            case VRCExpressionsMenu.Control.ControlType.Button:
-                                                GUI.backgroundColor = new Color { r = 1f, g = 1f, b = 0.7f, a = 1 };
-                                                break;
-                                            case VRCExpressionsMenu.Control.ControlType.Toggle:
-                                                GUI.backgroundColor = new Color { r = 0.7f, g = 0.7f, b = 1f, a = 1 };
-                                                break;
-                                            case VRCExpressionsMenu.Control.ControlType.RadialPuppet:
-                                                GUI.backgroundColor = new Color { r = 1f, g = 0.7f, b = 1f, a = 1 };
-                                                break;
-                                            default:
-                                                GUI.backgroundColor = new Color { r = 1f, g = 0.7f, b = 0.7f, a = 1 };
-                                                break;
-                                        }
+                                        };
+                                        lastMenu.controls.Add(newControl);
+                                        EditorUtility.SetDirty(lastMenu);
 
-
-                                        GUILayout.Button(new GUIContent(CleanMarkdownText(control.name), control.icon), menuButtons, GUILayout.MaxWidth(Screen.width - 240));
-                                        CheckDragAndDrop(ref control.icon, controlList[controlList.Count - 1]);
-
-
-                                        GUI.backgroundColor = def;
-                                        GUI.enabled = true;
-                                    }
-
-
-                                    // The rest
-
-                                    // Edit
-                                    if (GUILayout.Button(new GUIContent("Edit", "Opens the Menu Control Editor"), menuButtons, GUILayout.Width(60)))
-                                    {
-
-                                        OpenWindow(control, i, controlList[controlList.Count - 1], parameters);
+                                        OpenWindow(newControl, controlList[controlList.Count - 1].controls.Count - 1, controlList[controlList.Count - 1], parameters);
 
                                     }
 
-                                    /*
-                                    // Clone
-                                    if (controlList[controlList.Count - 1].controls.Count >= VRCExpressionsMenu.MAX_CONTROLS)
-                                        GUI.enabled = false;
-                                    if (GUILayout.Button("Clone", menuButtons, GUILayout.Width(60)))
-                                    {
-                                        controlList[controlList.Count - 1].controls.Add(Duplicate(i));
-                                        EditorUtility.SetDirty(controlList[controlList.Count - 1]);
-                                    }
-                                    GUI.enabled = true;*/
+                                    CheckDragAndDropNewSubmenu(lastMenu);
 
-                                    // Copy Paste
 
-                                    // Copy
-                                    EditorGUILayout.BeginVertical(new GUIStyle() { fixedWidth = 60, fontSize = 8, });
-                                    if (GUILayout.Button(new GUIContent("Copy"), new GUIStyle(EditorStyles.miniButton) { fixedHeight = smallButtonsHeight, fontSize = 10 }))
-                                    {
-                                        isCopyActive = true;
-                                        copiedControl = Duplicate(controlList[controlList.Count - 1].controls[i]);
+                                    GUI.backgroundColor = def;
 
-                                    }
-
-                                    // Paste
                                     if (!isCopyActive)
                                         GUI.enabled = false;
-                                    if (GUILayout.Button(new GUIContent("Paste"), new GUIStyle(EditorStyles.miniButton) { fixedHeight = smallButtonsHeight, fontSize = 10 }))
+                                    if (GUILayout.Button("Paste", menuButtons, GUILayout.Width(60)))
                                     {
-                                        controlList[controlList.Count - 1].controls[i] = Duplicate(copiedControl);
-                                        //controlList[controlList.Count - 1].controls.RemoveAt(i);
-                                        //controlList[controlList.Count - 1].controls.Add(Duplicate(copiedControl));
-                                        EditorUtility.SetDirty(controlList[controlList.Count - 1]);
+                                        lastMenu.controls.Add(Duplicate(copiedControl));
+                                        EditorUtility.SetDirty(lastMenu);
                                     }
                                     GUI.enabled = true;
 
-                                    EditorGUILayout.EndVertical();
-
-
-
-
-                                    // Delete
-                                    if (GUILayout.Button(new GUIContent("Delete"), menuButtons, GUILayout.Width(60)))
-                                    {
-                                        controlList[controlList.Count - 1].controls.RemoveAt(i);
-                                        EditorUtility.SetDirty(controlList[controlList.Count - 1]);
-                                    }
-
                                 }
 
                             }
-
-                            GUI.color = defaultColor; // Reset color
-
-                            Rect dropArea = GUILayoutUtility.GetLastRect();
-                            if (e.type == EventType.MouseDown && dropArea.Contains(e.mousePosition))
-                            {
-                                currentlyDraggingItemIndex = i;
-                                EditorGUIUtility.SetWantsMouseJumping(1);
-                            }
-                            else if (e.type == EventType.MouseDrag && currentlyDraggingItemIndex > -1)
-                            {
-                                e.Use();
-                            }
-                            else if (e.type == EventType.MouseUp && dropArea.Contains(e.mousePosition) && currentlyDraggingItemIndex > -1)
-                            {
-                                //controlList[controlList.Count - 1].controls = new List<VRCExpressionsMenu.Control>(items);
-                                currentlyDraggingItemIndex = -1;
-                                EditorGUIUtility.SetWantsMouseJumping(0);
-                                Repaint(); // Force the window to repaint
-                            }
-
-                            // Draw a ghost item at the mouse position while dragging
-                            if (currentlyDraggingItemIndex > -1)
-                            {
-                                ghostRect = new Rect(dropArea.x, e.mousePosition.y - (dropArea.height / 2), dropArea.width, dropArea.height);
-                                //EditorGUI.DrawRect(ghostRect, new Color(0.5f, 0.5f, 0.5f, 0.2f));
-                            }
-
-                            if (currentlyDraggingItemIndex > -1 && dropArea.Contains(e.mousePosition))
-                            {
-                                VRCExpressionsMenu.Control temp = controlList[controlList.Count - 1].controls[currentlyDraggingItemIndex];
-                                controlList[controlList.Count - 1].controls.RemoveAt(currentlyDraggingItemIndex);
-                                controlList[controlList.Count - 1].controls.Insert(i, temp);
-                                currentlyDraggingItemIndex = i;
-                                Repaint(); // Force the window to repaint
-                            }
-
-                        }
-
-                        // New Control
-                        else
-                        {
-                            Color def = GUI.backgroundColor;
-                            GUI.backgroundColor = new Color { r = 0.4f, g = 1f, b = 0.4f, a = 1 };
-
-                            using (new EditorGUILayout.HorizontalScope(new GUIStyle() { fixedHeight = 45 }))
-                            {
-                                if (GUILayout.Button("+ Create Control +", menuButtonsEmpty))
-                                {
-                                    VRCExpressionsMenu.Control newControl = new VRCExpressionsMenu.Control
-                                    {
-                                        name = "New Control",
-                                        parameter = new VRCExpressionsMenu.Control.Parameter { name = "" },
-                                        subParameters = new VRCExpressionsMenu.Control.Parameter[4] { new VRCExpressionsMenu.Control.Parameter { },
-                                        new VRCExpressionsMenu.Control.Parameter { }, new VRCExpressionsMenu.Control.Parameter { }, new VRCExpressionsMenu.Control.Parameter { } },
-                                        type = VRCExpressionsMenu.Control.ControlType.Toggle,
-                                        icon = null,
-
-                                    };
-                                    controlList[controlList.Count - 1].controls.Add(newControl);
-                                    EditorUtility.SetDirty(controlList[controlList.Count - 1]);
-
-                                    OpenWindow(newControl, controlList[controlList.Count - 1].controls.Count - 1, controlList[controlList.Count - 1], parameters);
-
-                                }
-
-                                    CheckDragAndDropNewSubmenu(controlList[controlList.Count - 1]);
-
-
-                                GUI.backgroundColor = def;
-
-                                if (!isCopyActive)
-                                    GUI.enabled = false;
-                                if (GUILayout.Button("Paste", menuButtons, GUILayout.Width(60)))
-                                {
-                                    controlList[controlList.Count - 1].controls.Add(Duplicate(copiedControl));
-                                    EditorUtility.SetDirty(controlList[controlList.Count - 1]);
-                                }
-                                GUI.enabled = true;
-
-                            }
-
                         }
                     }
-
                     if (currentlyDraggingItemIndex > -1 && mouseOverWindow == GetWindow(typeof(MenuEditor)))
                     {
                         EditorGUI.DrawRect(ghostRect, new Color(0.5f, 0.5f, 0.5f, 0.5f));
@@ -460,20 +439,14 @@ namespace GabSith.WFT
                     //EditorGUILayout.EndVertical();
 
 
-                    if (controlList[controlList.Count - 1] != null)
+                    if (lastMenu != null)
 
-                        GUILayout.Label("Used Controls: " + controlList[controlList.Count - 1].controls.Count + " out of " + VRCExpressionsMenu.MAX_CONTROLS);
+                        GUILayout.Label("Used Controls: " + lastMenu.controls.Count + " out of " + VRCExpressionsMenu.MAX_CONTROLS);
                     EditorGUILayout.Space(20);
 
 
                 }
                 EditorGUILayout.EndScrollView();
-            }
-            else
-            {
-                //EditorGUILayout.Space(20);
-                EditorGUILayout.HelpBox("Expression Menu or Expression Parameters cannot be accessed", MessageType.Error);
-                EditorGUILayout.Space(40);
             }
 
 
@@ -524,7 +497,14 @@ namespace GabSith.WFT
                     if (!GUILayoutUtility.GetLastRect().Contains(e.mousePosition))
                         return;
 
-                    DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                    if (DragAndDrop.objectReferences[0] as Texture2D != null)
+                    {
+                        DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                    }
+                    else
+                    {
+                        DragAndDrop.visualMode = DragAndDropVisualMode.Rejected;
+                    }
 
                     if (e.type == EventType.DragPerform)
                     {
@@ -534,6 +514,54 @@ namespace GabSith.WFT
                             texture = DragAndDrop.objectReferences[0] as Texture2D;
                             EditorUtility.SetDirty(cont);
                         }
+                        else if (DragAndDrop.objectReferences[0] as VRCExpressionsMenu != null)
+                        {
+                            DragAndDrop.AcceptDrag();
+                            texture = DragAndDrop.objectReferences[0] as Texture2D;
+                            EditorUtility.SetDirty(cont);
+                        }
+
+                    }
+                    break;
+            }
+        }
+
+        private void CheckDragAndDrop(ref Texture2D texture, ref VRCExpressionsMenu submenu, VRCExpressionsMenu cont)
+        {
+            Event e = Event.current;
+
+            switch (e.type)
+            {
+                case EventType.DragUpdated:
+                case EventType.DragPerform:
+                    if (!GUILayoutUtility.GetLastRect().Contains(e.mousePosition))
+                        return;
+
+                    if (DragAndDrop.objectReferences[0] as Texture2D != null || DragAndDrop.objectReferences[0] as VRCExpressionsMenu != null)
+                    {
+                        DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                    }
+                    else
+                    {
+                        DragAndDrop.visualMode = DragAndDropVisualMode.Rejected;
+                    }
+
+                    if (e.type == EventType.DragPerform)
+                    {
+                        if (DragAndDrop.objectReferences[0] as Texture2D != null)
+                        {
+
+                            DragAndDrop.AcceptDrag();
+                            texture = DragAndDrop.objectReferences[0] as Texture2D;
+                            EditorUtility.SetDirty(cont);
+                        }
+                        else if (DragAndDrop.objectReferences[0] as VRCExpressionsMenu != null)
+                        {
+                            DragAndDrop.AcceptDrag();
+                            submenu = DragAndDrop.objectReferences[0] as VRCExpressionsMenu;
+                            EditorUtility.SetDirty(cont);
+                        }
+
                     }
                     break;
             }
@@ -550,7 +578,14 @@ namespace GabSith.WFT
                     if (!GUILayoutUtility.GetLastRect().Contains(e.mousePosition))
                         return;
 
-                    DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                    if (DragAndDrop.objectReferences[0] as VRCExpressionsMenu != null)
+                    {
+                        DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                    }
+                    else
+                    {
+                        DragAndDrop.visualMode = DragAndDropVisualMode.Rejected;
+                    }
 
                     if (e.type == EventType.DragPerform)
                     {
@@ -635,24 +670,37 @@ namespace GabSith.WFT
             menu = null;
             controlList.Clear();
 
-            if (avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
+            if (!useSelected && avatarDescriptor != null && avatarDescriptor.customExpressions && avatarDescriptor.expressionsMenu != null)
             {
                 menu = avatarDescriptor.expressionsMenu;
                 controlList.Add(menu);
+            }
+            else if (useSelected)
+            {
+                if (Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets).Length > 0)
+                    menu = Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets)[0];
             }
 
         }
 
         bool RequirementsMet()
         {
-            if (avatarDescriptor == null)
+            if (!useSelected && avatarDescriptor == null)
             {
-                //Debug.Log("Avatar Descriptor is null");
+                EditorGUILayout.HelpBox("No avatar descriptor selected", MessageType.Error);
+                EditorGUILayout.Space(40);
                 return false;
             }
-            else if (!avatarDescriptor.customExpressions || avatarDescriptor.expressionParameters == null || avatarDescriptor.expressionsMenu == null) 
+            else if (!useSelected && (!avatarDescriptor.customExpressions || avatarDescriptor.expressionParameters == null || avatarDescriptor.expressionsMenu == null)) 
             {
-                //Debug.Log("Expressions Menu or Expressions Parameters are null");
+                EditorGUILayout.HelpBox("Expression Menu or Expression Parameters cannot be accessed", MessageType.Error);
+                EditorGUILayout.Space(40);
+                return false;
+            }
+            else if (useSelected && Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets).Length < 1)
+            {
+                EditorGUILayout.HelpBox("No menu selected", MessageType.Error);
+                EditorGUILayout.Space(40);
                 return false;
             }
 

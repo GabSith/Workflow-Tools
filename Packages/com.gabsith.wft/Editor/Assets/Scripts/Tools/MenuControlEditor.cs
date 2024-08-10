@@ -17,6 +17,7 @@ using Vector3 = UnityEngine.Vector3;
 using UnityEditor.AnimatedValues;
 using UnityEngine.Events;
 
+using System.Text.RegularExpressions;
 
 
 
@@ -24,15 +25,16 @@ namespace GabSith.WFT
 {
     public class MenuControlEditor : EditorWindow
     {
+        bool avatarAvailable;
+        Vector2 scrollPos;
+
         public VRCExpressionsMenu menu;
         public int menuIndex;
 
         public VRCExpressionsMenu.Control control;
 
-        Texture2D icon;
-        new string name;
-        string parameter;
-        VRCExpressionsMenu.Control.ControlType controlType;
+        bool richTextFold = false;
+        Color selectedColor = Color.white;
 
         List<VRCExpressionParameters.ValueType>  valueTypes = new List<VRCExpressionParameters.ValueType> { };
         int selectedParameter;
@@ -45,8 +47,7 @@ namespace GabSith.WFT
 
         bool createMode;
         string newMenuName;
-        //private readonly string defaultPath = "Assets/WF Tools - GabSith/Generated";
-        //private string folderPath = "Assets/WF Tools - GabSith/Generated";
+
 
         int selectedControl = 0;
         readonly string[] controlOptions = new string[6] { "Button", "Toggle", "Sub Menu", "Two Axis Puppet", "Four Axis Puppet", "Radial Puppet" };
@@ -86,6 +87,15 @@ namespace GabSith.WFT
             defaultColor = GUI.color;
 
             suffix = ProjectSettingsManager.GetString(MenuControlFolderSuffixKey);
+
+            if (avatarDescriptor == null)
+            {
+                avatarAvailable = false;
+            }
+            else
+            {
+                avatarAvailable = true;
+            }
         }
 
         private void OnDestroy()
@@ -100,21 +110,93 @@ namespace GabSith.WFT
 
             CommonActions.GenerateTitle("Menu Control Editor");
 
-            
+            if (avatarDescriptor == null)
+            {
+                avatarAvailable = false;
+            }
+            else
+            {
+                avatarAvailable = true;
+            }
+
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
+
+
             if (AssetDatabase.GetAssetPath(menu) != null)
             {
                 menu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(AssetDatabase.GetAssetPath(menu));
-                //Debug.Log(menu.controls.Count);
-                //Debug.Log(menuIndex);
+
                 control = menu.controls[menuIndex];
 
 
                 if (control != null)
                 {
+                    // Name and Icon
+                    EditorGUILayout.BeginHorizontal();
+                    control.name = EditorGUILayout.TextField("", control.name, new GUIStyle(EditorStyles.textArea) { wordWrap = true }, GUILayout.Height(60));
+                    control.icon = EditorGUILayout.ObjectField("", control.icon, typeof(Texture2D), true, GUILayout.Width(60f), GUILayout.Height(60f)) as Texture2D;
+                    EditorGUILayout.EndHorizontal();
 
-                    control.name = EditorGUILayout.TextField("Name: ", control.name);
 
-                    control.icon = EditorGUILayout.ObjectField("Menu Icon", control.icon, typeof(Texture2D), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as Texture2D;
+                    // Rich Text
+                    GUIStyle rtLabel = new GUIStyle(GUI.skin.label)
+                    {
+                        richText = true
+                    };
+                    GUIStyle rtButton = new GUIStyle(GUI.skin.button)
+                    {
+                        richText = true
+                    };
+                    GUI.SetNextControlName("NotText");
+                    richTextFold = EditorGUILayout.Foldout(richTextFold, "Rich Text");
+                    if (richTextFold)
+                    {
+                        using (var h = new EditorGUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("Preview: ", GUILayout.Height(30f));
+                            GUILayout.Label(control.name, rtLabel, GUILayout.Height(30f));
+                        }
+
+                        // Begin Horizontal Layout for Bold and Italic Buttons
+                        EditorGUILayout.BeginHorizontal();
+
+                        // Bold Button
+                        if (GUILayout.Button("<b>Bold</b>", rtButton))
+                        {
+                            control.name = ToggleRichTextTag(control.name, "<b>", "</b>");
+                            GUI.FocusControl("NotText");
+                        }
+
+                        // Italic Button
+                        if (GUILayout.Button("<i>Italic</i>", rtButton))
+                        {
+                            control.name = ToggleRichTextTag(control.name, "<i>", "</i>");
+                            GUI.FocusControl("NotText");
+                        }
+
+                        // Color Button
+                        if (GUILayout.Button("Color"))
+                        {
+                            control.name = ToggleColorTag(control.name, selectedColor, true);
+                            GUI.FocusControl("NotText");
+                        }
+
+                        EditorGUILayout.EndHorizontal();
+
+                        // Color Selection
+                        EditorGUI.BeginChangeCheck();
+                        selectedColor = EditorGUILayout.ColorField(new GUIContent("Text Color"), selectedColor, true, false, false);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            control.name = ToggleColorTag(control.name, selectedColor);
+                            GUI.FocusControl("NotText");
+                        }
+
+                    }
+
+                    EditorGUILayout.Space(20f);
+
+                    //control.icon = EditorGUILayout.ObjectField("Menu Icon", control.icon, typeof(Texture2D), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as Texture2D;
 
                     EditorGUI.BeginChangeCheck();
                     selectedControl = GetIntFromControl(control.type);
@@ -126,10 +208,12 @@ namespace GabSith.WFT
                     control.type = GetControlFromInt(selectedControl);
 
                     EditorGUILayout.Space();
-                    {
-                        EditorGUILayout.BeginHorizontal();
+                    
+                    EditorGUILayout.BeginHorizontal();
 
-                        control.parameter.name = EditorGUILayout.TextField("Parameter: ", control.parameter.name);
+                    control.parameter.name = EditorGUILayout.TextField("Parameter: ", control.parameter.name);
+                    if (avatarAvailable)
+                    {
                         EditorGUI.BeginChangeCheck();
                         int valParam = ParameterList("", control.parameter.name, CreateParameterList(expressionParameters), 0);
                         selectedParameter = valParam;
@@ -144,15 +228,6 @@ namespace GabSith.WFT
                                 string parameterName = CreateParameterList(expressionParameters)[valParam - 1];
                                 control.parameter.name = parameterName;
 
-
-
-                                // Check if it exists
-                                /*
-                                foreach (var item in avatarDescriptor.expressionParameters.parameters)
-                                {
-                                    parameterNames.Add(item.name);
-                                }
-                                */
                             }
                             else
                                 control.parameter.name = "";
@@ -160,38 +235,16 @@ namespace GabSith.WFT
 
 
                         // New Parameter
-                        {
-                            if (newParameterBools[0])
-                                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-
-                            if (GUILayout.Button("New", GUILayout.Width(50)))
-                            {
-                                newParameterBools[0] = !newParameterBools[0];
-                            }
-                            GUI.color = defaultColor;
-
-                            EditorGUILayout.EndHorizontal();
-
-                            if (newParameterBools[0])
-                            {
-                                if (CreateGlobal())
-                                {
-                                    control.parameter.name = expressionParameters.parameters.Last().name;
-                                }
-                                EditorGUILayout.Space();
-
-                            }
-                        }
-
-
-                        if (!containsNewOne[0])
-                        {
-                            EditorGUILayout.HelpBox(control.parameter.name + " was not found in the expression parameters", MessageType.Warning);
-                        }
+                        NewParameter(0, ref control.parameter.name);
 
                     }
+                    else
+                    {
+                        EditorGUILayout.EndHorizontal();
+                    }
 
-                    if (valueTypes.Count != expressionParameters.parameters.Length)
+
+                    if (avatarAvailable && valueTypes.Count != expressionParameters.parameters.Length)
                     {
                         if (valueTypes[selectedParameter] == VRCExpressionParameters.ValueType.Int)
                         {
@@ -279,7 +332,8 @@ namespace GabSith.WFT
 
 
                     }
-                    else if (control.type == VRCExpressionsMenu.Control.ControlType.RadialPuppet) {
+                    else if (control.type == VRCExpressionsMenu.Control.ControlType.RadialPuppet)
+                    {
                         //Debug.Log(control.subParameters.Length);
                         //Debug.Log(control.subParameters[0].name);
 
@@ -294,47 +348,26 @@ namespace GabSith.WFT
 
 
                             control.subParameters[0].name = EditorGUILayout.TextField("Parameter Rotation: ", control.subParameters[0].name);
-
-                            EditorGUI.BeginChangeCheck();
-                            int val = ParameterList("", control.subParameters[0].name, CreateParameterList(expressionParameters, true, true), 1);
-                            if (EditorGUI.EndChangeCheck())
+                            if (avatarAvailable)
                             {
-                                if (val != 0)
-                                    control.subParameters[0].name = CreateParameterList(expressionParameters, true, true)[val - 1];
-                                else
-                                    control.subParameters[0].name = "";
-                            }
-
-                            // New Parameter
-                            {
-                                if (newParameterBools[1])
-                                    GUI.color = new Color(0.5f, 0.8f, 0.5f);
-
-                                if (GUILayout.Button("New", GUILayout.Width(50)))
+                                EditorGUI.BeginChangeCheck();
+                                int val = ParameterList("", control.subParameters[0].name, CreateParameterList(expressionParameters, true, true), 1);
+                                if (EditorGUI.EndChangeCheck())
                                 {
-                                    newParameterBools[1] = !newParameterBools[1];
+                                    if (val != 0)
+                                        control.subParameters[0].name = CreateParameterList(expressionParameters, true, true)[val - 1];
+                                    else
+                                        control.subParameters[0].name = "";
                                 }
-                                GUI.color = defaultColor;
 
+                                // New Parameter
+                                NewParameter(1, ref control.subParameters[0].name);
+
+                            }
+                            else
+                            {
                                 EditorGUILayout.EndHorizontal();
-
-                                if (newParameterBools[1])
-                                {
-                                    if (CreateGlobal())
-                                    {
-                                        control.subParameters[0].name = expressionParameters.parameters.Last().name;
-                                    }
-                                    EditorGUILayout.Space();
-                                }
-
                             }
-
-                            // Not Found Warning
-                            if (!containsNewOne[1])
-                            {
-                                EditorGUILayout.HelpBox(control.subParameters[0].name + " was not found in the expression parameters", MessageType.Warning);
-                            }
-
                         }
 
                     }
@@ -360,7 +393,7 @@ namespace GabSith.WFT
 
                         if (control.subParameters.Length < 2)
                         {
-                            control.subParameters = new VRCExpressionsMenu.Control.Parameter[4] { new VRCExpressionsMenu.Control.Parameter { }, 
+                            control.subParameters = new VRCExpressionsMenu.Control.Parameter[4] { new VRCExpressionsMenu.Control.Parameter { },
                                 new VRCExpressionsMenu.Control.Parameter { }, new VRCExpressionsMenu.Control.Parameter { }, new VRCExpressionsMenu.Control.Parameter { } };
                         }
 
@@ -368,89 +401,45 @@ namespace GabSith.WFT
 
                         EditorGUILayout.BeginHorizontal();
                         control.subParameters[0].name = EditorGUILayout.TextField("Parameter Horizontal: ", control.subParameters[0].name);
-                        EditorGUI.BeginChangeCheck();
-                        int val = ParameterList("", control.subParameters[0].name, CreateParameterList(expressionParameters, true, false), 1);
-                        if (EditorGUI.EndChangeCheck())
+                        if (avatarAvailable)
                         {
-                            if (val != 0)
-                                control.subParameters[0].name = CreateParameterList(expressionParameters, true, false)[val - 1];
-                            else
-                                control.subParameters[0].name = "";
-                        }
-                        // New Parameter
-                        {
-                            if (newParameterBools[1])
-                                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-
-                            if (GUILayout.Button("New", GUILayout.Width(50)))
+                            EditorGUI.BeginChangeCheck();
+                            int val = ParameterList("", control.subParameters[0].name, CreateParameterList(expressionParameters, true, false), 1);
+                            if (EditorGUI.EndChangeCheck())
                             {
-                                newParameterBools[1] = !newParameterBools[1];
+                                if (val != 0)
+                                    control.subParameters[0].name = CreateParameterList(expressionParameters, true, false)[val - 1];
+                                else
+                                    control.subParameters[0].name = "";
                             }
-                            GUI.color = defaultColor;
-
+                            // New Parameter
+                            NewParameter(1, ref control.subParameters[0].name);
+                        }
+                        else
+                        {
                             EditorGUILayout.EndHorizontal();
-
-                            if (newParameterBools[1])
-                            {
-                                if (CreateGlobal())
-                                {
-                                    control.subParameters[0].name = expressionParameters.parameters.Last().name;
-                                }
-                                EditorGUILayout.Space();
-
-                            }
                         }
-
-                        // Not Found Warning
-                        if (!containsNewOne[1])
-                        {
-                            EditorGUILayout.HelpBox(control.subParameters[0].name + " was not found in the expression parameters", MessageType.Warning);
-                        }
-
-
                         EditorGUILayout.BeginHorizontal();
                         control.subParameters[1].name = EditorGUILayout.TextField("Parameter Vertical: ", control.subParameters[1].name);
-                        EditorGUI.BeginChangeCheck();
-                        int val1 = ParameterList("", control.subParameters[1].name, CreateParameterList(expressionParameters, true, false), 2);
-                        if (EditorGUI.EndChangeCheck())
+                        if (avatarAvailable)
                         {
-                            if (val1 != 0)
-                                control.subParameters[1].name = CreateParameterList(expressionParameters, true, false)[val1 - 1];
-                            else
-                                control.subParameters[1].name = "";
-                        }
-
-                        // New Parameter
-                        {
-                            if (newParameterBools[2])
-                                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-
-                            if (GUILayout.Button("New", GUILayout.Width(50)))
+                            EditorGUI.BeginChangeCheck();
+                            int val1 = ParameterList("", control.subParameters[1].name, CreateParameterList(expressionParameters, true, false), 2);
+                            if (EditorGUI.EndChangeCheck())
                             {
-                                newParameterBools[2] = !newParameterBools[2];
+                                if (val1 != 0)
+                                    control.subParameters[1].name = CreateParameterList(expressionParameters, true, false)[val1 - 1];
+                                else
+                                    control.subParameters[1].name = "";
                             }
-                            GUI.color = defaultColor;
 
+                            // New Parameter
+                            NewParameter(2, ref control.subParameters[1].name);
+                        }
+                        else
+                        {
                             EditorGUILayout.EndHorizontal();
-
-                            if (newParameterBools[2])
-                            {
-                                if (CreateGlobal())
-                                {
-                                    control.subParameters[1].name = expressionParameters.parameters.Last().name;
-                                }
-
-                                EditorGUILayout.Space();
-
-                            }
                         }
-
-                        // Not Found Warning
-                        if (!containsNewOne[2])
-                        {
-                            EditorGUILayout.HelpBox(control.subParameters[1].name + " was not found in the expression parameters", MessageType.Warning);
-                        }
-
 
                     }
 
@@ -466,183 +455,94 @@ namespace GabSith.WFT
 
                         EditorGUILayout.BeginHorizontal();
                         control.subParameters[0].name = EditorGUILayout.TextField("Parameter Up: ", control.subParameters[0].name);
-                        EditorGUI.BeginChangeCheck();
-                        int val = ParameterList("", control.subParameters[0].name, CreateParameterList(expressionParameters, true, false), 1);
-                        if (EditorGUI.EndChangeCheck())
+                        if (avatarAvailable)
                         {
-                            if (val != 0)
-                                control.subParameters[0].name = CreateParameterList(expressionParameters, true, false)[val - 1];
-                            else
-                                control.subParameters[0].name = "";
-                        }
-
-
-                        // New Parameter
-                        {
-                            if (newParameterBools[1])
-                                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-
-                            if (GUILayout.Button("New", GUILayout.Width(50)))
+                            EditorGUI.BeginChangeCheck();
+                            int val = ParameterList("", control.subParameters[0].name, CreateParameterList(expressionParameters, true, false), 1);
+                            if (EditorGUI.EndChangeCheck())
                             {
-                                newParameterBools[1] = !newParameterBools[1];
+                                if (val != 0)
+                                    control.subParameters[0].name = CreateParameterList(expressionParameters, true, false)[val - 1];
+                                else
+                                    control.subParameters[0].name = "";
                             }
-                            GUI.color = defaultColor;
 
+
+                            // New Parameter
+                            NewParameter(1, ref control.subParameters[0].name);
+
+                        }
+                        else
+                        {
                             EditorGUILayout.EndHorizontal();
-
-                            if (newParameterBools[1])
-                            {
-                                if (CreateGlobal())
-                                {
-                                    control.subParameters[0].name = expressionParameters.parameters.Last().name;
-                                }
-
-                                EditorGUILayout.Space();
-
-                            }
                         }
-
-                        // Not Found Warning
-                        if (!containsNewOne[1])
-                        {
-                            EditorGUILayout.HelpBox(control.subParameters[0].name + " was not found in the expression parameters", MessageType.Warning);
-                        }
-
                         EditorGUILayout.BeginHorizontal();
                         control.subParameters[1].name = EditorGUILayout.TextField("Parameter Right: ", control.subParameters[1].name);
-                        EditorGUI.BeginChangeCheck();
-                        int val1 = ParameterList("", control.subParameters[1].name, CreateParameterList(expressionParameters, true, false), 2);
-                        if (EditorGUI.EndChangeCheck())
+                        if (avatarAvailable)
                         {
-                            if (val1 != 0)
-                                control.subParameters[1].name = CreateParameterList(expressionParameters, true, false)[val1 - 1];
-                            else
-                                control.subParameters[1].name = "";
-                        }
-
-
-                        // New Parameter
-                        {
-                            if (newParameterBools[2])
-                                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-
-                            if (GUILayout.Button("New", GUILayout.Width(50)))
+                            EditorGUI.BeginChangeCheck();
+                            int val1 = ParameterList("", control.subParameters[1].name, CreateParameterList(expressionParameters, true, false), 2);
+                            if (EditorGUI.EndChangeCheck())
                             {
-                                newParameterBools[2] = !newParameterBools[2];
+                                if (val1 != 0)
+                                    control.subParameters[1].name = CreateParameterList(expressionParameters, true, false)[val1 - 1];
+                                else
+                                    control.subParameters[1].name = "";
                             }
-                            GUI.color = defaultColor;
 
+                            // New Parameter
+                            NewParameter(2, ref control.subParameters[1].name);
+                        }
+                        else
+                        {
                             EditorGUILayout.EndHorizontal();
-
-                            if (newParameterBools[2])
-                            {
-                                if (CreateGlobal())
-                                {
-                                    control.subParameters[1].name = expressionParameters.parameters.Last().name;
-                                }
-
-                                EditorGUILayout.Space();
-
-                            }
                         }
-
-                        // Not Found Warning
-                        if (!containsNewOne[2])
-                        {
-                            EditorGUILayout.HelpBox(control.subParameters[1].name + " was not found in the expression parameters", MessageType.Warning);
-                        }
-
-
                         EditorGUILayout.BeginHorizontal();
                         control.subParameters[2].name = EditorGUILayout.TextField("Parameter Down: ", control.subParameters[2].name);
-                        EditorGUI.BeginChangeCheck();
-                        int val2 = ParameterList("", control.subParameters[2].name, CreateParameterList(expressionParameters, true, false), 3);
-                        if (EditorGUI.EndChangeCheck())
+                        if (avatarAvailable)
                         {
-                            if (val2 != 0)
-                                control.subParameters[2].name = CreateParameterList(expressionParameters, true, false)[val2 - 1];
-                            else
-                                control.subParameters[2].name = "";
-                        }
-
-
-                        // New Parameter
-                        {
-                            if (newParameterBools[3])
-                                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-
-                            if (GUILayout.Button("New", GUILayout.Width(50)))
+                            EditorGUI.BeginChangeCheck();
+                            int val2 = ParameterList("", control.subParameters[2].name, CreateParameterList(expressionParameters, true, false), 3);
+                            if (EditorGUI.EndChangeCheck())
                             {
-                                newParameterBools[3] = !newParameterBools[3];
+                                if (val2 != 0)
+                                    control.subParameters[2].name = CreateParameterList(expressionParameters, true, false)[val2 - 1];
+                                else
+                                    control.subParameters[2].name = "";
                             }
-                            GUI.color = defaultColor;
 
+
+                            // New Parameter
+                            NewParameter(3, ref control.subParameters[2].name);
+
+                        }
+                        else
+                        {
                             EditorGUILayout.EndHorizontal();
-
-                            if (newParameterBools[3])
-                            {
-                                if (CreateGlobal())
-                                {
-                                    control.subParameters[2].name = expressionParameters.parameters.Last().name;
-                                }
-
-                                EditorGUILayout.Space();
-
-                            }
                         }
-
-                        // Not Found Warning
-                        if (!containsNewOne[3])
-                        {
-                            EditorGUILayout.HelpBox(control.subParameters[2].name + " was not found in the expression parameters", MessageType.Warning);
-                        }
-
-
                         EditorGUILayout.BeginHorizontal();
                         control.subParameters[3].name = EditorGUILayout.TextField("Parameter Left: ", control.subParameters[3].name);
-                        EditorGUI.BeginChangeCheck();
-                        int val3 = ParameterList("", control.subParameters[3].name, CreateParameterList(expressionParameters, true, false), 4);
-                        if (EditorGUI.EndChangeCheck())
+                        if (avatarAvailable)
                         {
-                            if (val3 != 0)
-                                control.subParameters[3].name = CreateParameterList(expressionParameters, true, false)[val3 - 1];
-                            else
-                                control.subParameters[3].name = "";
-                        }
-
-
-                        // New Parameter
-                        {
-                            if (newParameterBools[4])
-                                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-
-                            if (GUILayout.Button("New", GUILayout.Width(50)))
+                            EditorGUI.BeginChangeCheck();
+                            int val3 = ParameterList("", control.subParameters[3].name, CreateParameterList(expressionParameters, true, false), 4);
+                            if (EditorGUI.EndChangeCheck())
                             {
-                                newParameterBools[4] = !newParameterBools[4];
+                                if (val3 != 0)
+                                    control.subParameters[3].name = CreateParameterList(expressionParameters, true, false)[val3 - 1];
+                                else
+                                    control.subParameters[3].name = "";
                             }
-                            GUI.color = defaultColor;
 
+
+                            // New Parameter
+                            NewParameter(4, ref control.subParameters[3].name);
+                        }
+                        else
+                        {
                             EditorGUILayout.EndHorizontal();
-
-                            if (newParameterBools[4])
-                            {
-                                if (CreateGlobal())
-                                {
-                                    control.subParameters[3].name = expressionParameters.parameters.Last().name;
-                                }
-
-                                EditorGUILayout.Space();
-
-                            }
-                        }
-
-                        // Not Found Warning
-                        if (!containsNewOne[4])
-                        {
-                            EditorGUILayout.HelpBox(control.subParameters[3].name + " was not found in the expression parameters", MessageType.Warning);
                         }
                     }
-
 
                 }
                 else
@@ -652,14 +552,103 @@ namespace GabSith.WFT
             }
 
 
-
-
-
-
+            if (!avatarAvailable)
+            {
+                EditorGUILayout.HelpBox("No avatar was selected, so parameters can't be listed or added", MessageType.Info);
+            }
 
             EditorGUILayout.Space(25);
+
+            EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
         }
+
+
+        string ToggleRichTextTag(string text, string openTag, string closeTag)
+        {
+            if (text.Contains(openTag) && text.Contains(closeTag))
+            {
+                text = text.Replace(openTag, "").Replace(closeTag, "");
+            }
+            else
+            {
+                text = openTag + text + closeTag;
+            }
+            return text;
+        }
+
+        string ToggleColorTag(string text, Color color, bool toogle = false)
+        {
+            string colorHex = ColorUtility.ToHtmlStringRGBA(color);
+            string openTag = $"<color=#{colorHex}>";
+            string closeTag = "</color>";
+
+            // Regex pattern to find existing color tags
+            string pattern = @"<color=#\w{6,8}>(.*?)<\/color>";
+
+            if (Regex.IsMatch(text, pattern))
+            {
+                if (toogle)
+                {
+                    text = Regex.Replace(text, pattern, $"$1");
+                    return text;
+                }
+
+                // Replace the existing color tag with the new one
+                text = Regex.Replace(text, pattern, $"{openTag}$1{closeTag}");
+            }
+            else
+            {
+                // Add new color tag
+                text = openTag + text + closeTag;
+            }
+
+            return text;
+        }
+        /*
+        string ToggleColorTag(string text, Color color, bool remove = false)
+        {
+            string colorHex = ColorUtility.ToHtmlStringRGBA(color);
+            string openTag = $"<color=#{colorHex}>";
+            string closeTag = "</color>";
+
+            // Check if there is an existing color tag
+            int colorTagStart = text.IndexOf("<color=");
+            int colorTagEnd = text.IndexOf("</color>");
+
+
+            if (colorTagStart != -1 && colorTagEnd != -1)
+            {
+                if (remove)
+                {
+                    // Remove the existing color tag
+                    string beforeColor1 = text.Substring(0, colorTagStart);
+                    string insideColor1 = text.Substring(colorTagStart, colorTagEnd - colorTagStart + closeTag.Length);
+                    string afterColor1 = text.Substring(colorTagEnd + closeTag.Length);
+
+                    text = beforeColor1 + insideColor1.Substring(insideColor1.IndexOf(">") + 1) + afterColor1;
+                    return text;
+                }
+
+
+                // Remove the existing color tag
+                string beforeColor = text.Substring(0, colorTagStart);
+                string insideColor = text.Substring(colorTagStart, colorTagEnd - colorTagStart + closeTag.Length);
+                string afterColor = text.Substring(colorTagEnd + closeTag.Length);
+
+                // Replace existing color tag with the new one
+                text = beforeColor + openTag + insideColor.Substring(insideColor.IndexOf(">") + 1) + afterColor;
+            }
+            else
+            {
+                // Add new color tag
+                text = openTag + text + closeTag;
+            }
+
+
+            return text;
+        }
+        */
 
 
         VRCExpressionsMenu.Control.ControlType GetControlFromInt(int controlIndex)
@@ -721,16 +710,6 @@ namespace GabSith.WFT
         }
 
 
-        public void SetControl(VRCExpressionsMenu.Control passedControl)
-        {
-            icon = passedControl.icon;
-            name = passedControl.name;
-            selectedControl = GetIntFromControl(passedControl.type);
-            parameter = passedControl.parameter.name;
-
-            control = passedControl;
-            // control = new VRCExpressionsMenu.Control { name = name };
-        }
 
         bool CreateGlobal()
         {
@@ -741,7 +720,7 @@ namespace GabSith.WFT
 
                 for (int i = 0; i < selectedConvModes.Length; i++)
                 {
-                    globalCreationBools[i] = EditorGUILayout.ToggleLeft(selectedConvModes[i], globalCreationBools[i], GUILayout.Width(Screen.width / 6.5f));
+                    globalCreationBools[i] = EditorGUILayout.ToggleLeft(selectedConvModes[i], globalCreationBools[i], GUILayout.Width(Screen.width / 6f - 11f));
                 }
                 globalCreationBools[0] = true;
 
@@ -984,6 +963,38 @@ namespace GabSith.WFT
 
             return 4;
         }
+
+        void NewParameter(int boolsIndex, ref string subParameter)
+        {
+
+            if (newParameterBools[boolsIndex])
+                GUI.color = new Color(0.5f, 0.8f, 0.5f);
+
+            if (GUILayout.Button("New", GUILayout.Width(50)))
+            {
+                newParameterBools[boolsIndex] = !newParameterBools[boolsIndex];
+            }
+            GUI.color = defaultColor;
+
+            EditorGUILayout.EndHorizontal();
+
+            if (newParameterBools[boolsIndex])
+            {
+                if (CreateGlobal())
+                {
+                    subParameter = expressionParameters.parameters.Last().name;
+                }
+                EditorGUILayout.Space();
+            }
+
+            // Not Found Warning
+            if (!containsNewOne[boolsIndex])
+            {
+                EditorGUILayout.HelpBox(subParameter + " was not found in the expression parameters", MessageType.Warning);
+            }
+
+        }
+
 
         void GlobalControllerAdd(int controllerIndex, int valueTypeSelectedIndex)
         {

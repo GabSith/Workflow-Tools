@@ -17,7 +17,7 @@ namespace GabSith.WFT
         private Color backgroundColor = new Color(0.69f, 0.34f, 0.34f);
         private bool useSkybox = false;
         private bool useTransparentBackground = true;
-        private bool showPreview = true;
+        private bool showPreview = false;
         private bool useSceneView = true;
         private Camera selectedCamera;
         private RenderTexture previewTexture;
@@ -25,6 +25,7 @@ namespace GabSith.WFT
         private Vector2 scrollPosition;
 
         private bool saveAsIcon = true;
+        private bool isVisible = true;
 
         private const string ScreenshotFolderKey = "ScreenshotFolderKey";
         private const string ScreenshotUseGlobalKey = "ScreenshotUseGlobalKey";
@@ -36,7 +37,7 @@ namespace GabSith.WFT
         private Color borderColor = Color.black;
         private int borderWidth = 2;
 
-        [MenuItem("GabSith/Image Creator")]
+        [MenuItem("GabSith/Image Creator", false, 102)]
         public static void ShowWindow()
         {
             EditorWindow w = EditorWindow.GetWindow(typeof(ImageCreator), false, "Image Creator");
@@ -49,6 +50,14 @@ namespace GabSith.WFT
             SceneView.duringSceneGui += OnSceneGUI;
             suffix = ProjectSettingsManager.GetString(ScreenshotFolderSuffixKey);
 
+        }
+        private void OnBecameInvisible()
+        {
+            isVisible = false;
+        }
+        private void OnBecameVisible()
+        {
+            isVisible = true;
         }
 
         private void OnDisable()
@@ -169,7 +178,7 @@ namespace GabSith.WFT
                 CreateBorderTexture();
             }
             */
-            if (showPreview)
+            if (showPreview && isVisible)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 UpdatePreview();
@@ -277,7 +286,6 @@ namespace GabSith.WFT
         private void RenderSelectedObjects(Camera camera)
         {
             GameObject[] selectedObjects = Selection.gameObjects;
-            if (selectedObjects.Length == 0) return;
 
             // Store the original layers and set selected objects to a temporary layer
             int tempLayer = LayerMask.NameToLayer("Ignore Raycast"); // Using an existing layer

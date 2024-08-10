@@ -45,7 +45,7 @@ namespace GabSith.WFT
         Color selectedOption = new Color(0.5f, 0.8f, 0.5f);
 
 
-        [MenuItem("GabSith/Material Editor", false, 2)]
+        [MenuItem("GabSith/Niche/Material Editor", false, 1000)]
 
 
         public static void ShowWindow()

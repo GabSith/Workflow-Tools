@@ -14,6 +14,9 @@ namespace GabSith.WFT
 {
     public class ParameterEditor : EditorWindow
     {
+        private GameObject myGameObject;
+
+
         VRCAvatarDescriptor[] avatarDescriptorsFromScene;
         VRCAvatarDescriptor avatarDescriptor;
         Vector2 scrollPosDescriptors;
@@ -28,7 +31,7 @@ namespace GabSith.WFT
         bool settingsMode = false;
         bool editMode = false;
         bool editingOptions = false;
-        bool caseSensitive = true;
+        bool caseSensitive = false;
         string find = "";
         string replace = "";
         Vector2 scrollPosFoundNames;
@@ -38,24 +41,22 @@ namespace GabSith.WFT
         bool globalCreationMode = false;
         bool[] globalCreationBools = new bool[6] { true, true, false, false, false, false };
 
-        //bool changesMadeGlobal = false;
         bool[] changesMadeGlobalDelay = new bool[5] { false, false, false, false, false };
-        //bool refreshedAvatars = false;
         int selectedParamMode;
         Color defaultColor;
 
         Rect ghostRect;
 
-        //private List<string> items;
         private List<VRCExpressionParameters.Parameter> items;
         List<AnimatorControllerParameter> itemsController = new List<AnimatorControllerParameter>();
 
         private int currentlyDraggingItemIndex = -1;
         private Vector2 scrollPos;
 
+        bool showClone = true;
         bool showDelete = true;
 
-        [MenuItem("GabSith/Parameter Editor", false, 1)]
+        [MenuItem("GabSith/Parameter Editor", false, 2)]
 
 
         public static void ShowWindow()
@@ -63,31 +64,30 @@ namespace GabSith.WFT
             EditorWindow w = EditorWindow.GetWindow(typeof(ParameterEditor), false, "Parameter Editor");
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_VerticalLayoutGroup Icon").image, text = "Parameter Editor", tooltip = "♥" };
             w.minSize = new Vector2(350, 400);
-
+            w.autoRepaintOnSceneChange = true;
         }
 
         private void OnEnable()
         {
-            if (!EditorApplication.isPlaying)
-            {
-                if (avatarDescriptor == null)
-                {
-                    CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
-
-                    if (avatarDescriptorsFromScene.Length == 1)
-                    {
-                        avatarDescriptor = avatarDescriptorsFromScene[0];
-                    }
-                }
-            }
-
             defaultColor = GUI.color;
+        }
 
+        private void OnBecameVisible()
+        {
+            if (avatarDescriptor == null)
+            {
+                CommonActions.RefreshDescriptors(ref avatarDescriptor, ref avatarDescriptorsFromScene);
+            }
+        }
+
+        private void Start()
+        {
+            Debug.Log("Test");
         }
 
         private void OnGUI()
         {
-
+            GUI.SetNextControlName("NotText");
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             // Title
@@ -95,15 +95,16 @@ namespace GabSith.WFT
 
             // Avatar Selection
             CommonActions.FindAvatars(ref avatarDescriptor, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);
-            
 
-         
+
             // Mode Toolbar
             GUILayout.Space(10);
+            EditorGUI.BeginChangeCheck();
             selectedParamMode = GUILayout.Toolbar(selectedParamMode, selectedConvModes);
-
-
-
+            if (EditorGUI.EndChangeCheck())
+            {
+                GUI.FocusControl("NotText");
+            }
             items = new List<VRCExpressionParameters.Parameter>();
 
             if (selectedParamMode == 0)
@@ -269,6 +270,7 @@ namespace GabSith.WFT
 
             if (settingsMode)
             {
+                showClone = EditorGUILayout.ToggleLeft("Show Clone", showClone);
                 showDelete = EditorGUILayout.ToggleLeft("Show Delete", showDelete);
             }
 
@@ -356,7 +358,8 @@ namespace GabSith.WFT
                     GUILayout.Label("Synced", GUILayout.Width(50));
 
                     // Copy
-                    GUILayout.Label("Clone", GUILayout.Width(50));
+                    if (showClone)
+                        GUILayout.Label("Clone", GUILayout.Width(50));
 
                     // Delete
                     if (showDelete)
@@ -368,10 +371,9 @@ namespace GabSith.WFT
 
                 for (int i = 0; i < items.Count; i++)
                 {
-                    if (highlightMode && highlightHide.Count > i && !highlightHide[i])
+                    if (editMode && highlightMode && highlightHide.Count > i && !highlightHide[i])
                     {
                         GUI.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
-                        //Debug.Log(items[i].name);
                     }
 
 
@@ -379,7 +381,8 @@ namespace GabSith.WFT
                     if (i == currentlyDraggingItemIndex)
                     {
                         GUI.color = Color.grey; // Change the color of the item being dragged
-
+                        GUI.FocusControl("NotText");
+   
                     }
 
 
@@ -422,18 +425,19 @@ namespace GabSith.WFT
                         items[i].networkSynced = EditorGUILayout.Toggle(items[i].networkSynced, GUILayout.Width(50));
 
                         // Copy
-                        if (GUILayout.Button("Clone", GUILayout.Width(50)))
-                        {
-                            items.Add(new VRCExpressionParameters.Parameter
+                        if (showClone)
+                            if (GUILayout.Button("Clone", GUILayout.Width(50)))
                             {
-                                name = items[i].name,
-                                defaultValue = items[i].defaultValue,
-                                networkSynced = items[i].networkSynced,
-                                saved = items[i].saved,
-                                valueType = items[i].valueType
-                            });
-                            scrollPos += new Vector2(0, 999999);
-                        }
+                                items.Add(new VRCExpressionParameters.Parameter
+                                {
+                                    name = items[i].name,
+                                    defaultValue = items[i].defaultValue,
+                                    networkSynced = items[i].networkSynced,
+                                    saved = items[i].saved,
+                                    valueType = items[i].valueType
+                                });
+                                scrollPos += new Vector2(0, 999999);
+                            }
 
                         // Delete
                         if (showDelete)
@@ -647,9 +651,11 @@ namespace GabSith.WFT
                     GUILayout.Space(10);
 
                     // Copy
-                    GUILayout.Label("Clone", GUILayout.Width(50));
-                    GUILayout.Space(5);
-
+                    if (showClone)
+                    {
+                        GUILayout.Label("Clone", GUILayout.Width(50));
+                        GUILayout.Space(5);
+                    }
 
                     // Delete
                     if (showDelete)
@@ -661,7 +667,7 @@ namespace GabSith.WFT
 
                 for (int i = 0; i < itemsController.Count; i++)
                 {
-                    if (highlightMode && highlightHide.Count > i && !highlightHide[i])
+                    if (editMode && highlightMode && highlightHide.Count > i && !highlightHide[i])
                     {
                         GUI.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
                     }
@@ -707,19 +713,22 @@ namespace GabSith.WFT
                         GUILayout.Space(10);
 
                         // Copy
-                        if (GUILayout.Button("Clone", GUILayout.Width(50)))
+                        if (showClone)
                         {
-                            itemsController.Add(new AnimatorControllerParameter
+                            if (GUILayout.Button("Clone", GUILayout.Width(50)))
                             {
-                                name = itemsController[i].name,
-                                defaultBool = itemsController[i].defaultBool,
-                                defaultFloat = itemsController[i].defaultFloat,
-                                defaultInt = itemsController[i].defaultInt,
-                                type = itemsController[i].type
-                            });
-                            scrollPos += new Vector2(0, 999999);
+                                itemsController.Add(new AnimatorControllerParameter
+                                {
+                                    name = itemsController[i].name,
+                                    defaultBool = itemsController[i].defaultBool,
+                                    defaultFloat = itemsController[i].defaultFloat,
+                                    defaultInt = itemsController[i].defaultInt,
+                                    type = itemsController[i].type
+                                });
+                                scrollPos += new Vector2(0, 999999);
+                            }
+                            GUILayout.Space(5);
                         }
-                        GUILayout.Space(5);
 
                         // Delete
                         if (showDelete)
@@ -844,8 +853,6 @@ namespace GabSith.WFT
         List<string> EditMode(List<string> listToEdit, List<VRCExpressionParameters.Parameter> expressionParameters = null, List<AnimatorControllerParameter> controllerParameters = null)
         {
 
-            //prefix = EditorGUILayout.TextField("Prefix: ", prefix);
-
             EditorGUILayout.Space();
 
             using (new GUILayout.HorizontalScope())
@@ -943,8 +950,9 @@ namespace GabSith.WFT
             highlightMode = false;
             highlightHide = new List<bool>();
 
-            scrollPosFoundNames = EditorGUILayout.BeginScrollView(scrollPosFoundNames, EditorStyles.helpBox, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
-            //using (new GUILayout.ScrollViewScope(scrollPosFoundNames, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false)))
+            // Found Names
+            scrollPosFoundNames = EditorGUILayout.BeginScrollView(scrollPosFoundNames, 
+                EditorStyles.helpBox, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false), GUILayout.Height(100f));
             {
 
                 for (int i = 0; i < listToEdit.Count; i++)
@@ -981,20 +989,6 @@ namespace GabSith.WFT
 
                 }
 
-                /*
-                foreach (var item in listToEdit)
-                {
-
-                    if (caseSensitive && !string.IsNullOrEmpty(find) && find != " " && item.Contains(find))
-                    {
-                        GUILayout.Label(item, GUILayout.Height(EditorGUIUtility.singleLineHeight));
-                    }
-                    else if(!caseSensitive && !string.IsNullOrEmpty(find) && find != " " && item.IndexOf(find, StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        GUILayout.Label(item, GUILayout.Height(EditorGUIUtility.singleLineHeight));
-                    }
-
-                }*/
             }
 
             EditorGUILayout.EndScrollView();

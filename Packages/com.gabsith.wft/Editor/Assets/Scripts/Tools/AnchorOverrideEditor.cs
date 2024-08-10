@@ -31,7 +31,7 @@ namespace GabSith.WFT
 
         Vector2 scrollPos;
 
-        [MenuItem("GabSith/Anchor Override Editor", false, 2)]
+        [MenuItem("GabSith/Anchor Override Editor", false, 502)]
 
 
         public static void ShowWindow()
