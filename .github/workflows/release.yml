@@ -61,6 +61,13 @@ jobs:
       # Build a list of .meta files for future use
       - name: Track Package Meta Files
         run: find "${{ env.packagePath }}/" -name \*.meta >> metaList
+
+
+      # Clean up any existing temporary directories
+      - name: Clean up temp directories
+        run: |
+          rm -rf tempFolder*
+          rm -rf /tmp/tempFolder*
       
       # Make a UnityPackage version of the Package for release
       - name: Create UnityPackage
