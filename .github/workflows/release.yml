@@ -51,17 +51,13 @@ jobs:
           find "${{ env.packagePath }}/" -name \*.meta | sort | uniq > metaList
           cat metaList
 
-      - name: Cleanup temp directory
-        run: |
-          rm -rf tempFolder*
-          mkdir tempFolder
-
       - name: Create UnityPackage
         uses: pCYSl5EDgo/create-unitypackage@cfcd3cf0391a5ef1306342794866a9897c32af0b
         with:
           package-path: ${{ env.unityPackage }}
           include-files: metaList
-          temp-folder: tempFolder
+        env:
+          TEMP: ${{ runner.temp }}/unity_package_temp
       
       - name: Create Tag
         id: tag_version
