@@ -9,16 +9,19 @@ using VRC.SDK3.Avatars.Components;
 using System.IO;
 using System.Collections.Generic;
 
+using UnityEditor.AnimatedValues;
+using UnityEngine.Events;
 
 
 namespace GabSith.WFT
 {
     public class MaterialEditor : EditorWindow
     {
-
         GameObject parent;
 
-        bool converterMode;
+        AnimBool converterMode = new AnimBool(false);
+
+        //bool converterMode;
         int selectedConvMode = 0;
         int selectedQuestShader = 0;
 
@@ -41,8 +44,8 @@ namespace GabSith.WFT
 
 
         Color defaultColor;
-        Color highlightHide = new Color(0.7f, 0.5f, 0.5f, 0.8f);
-        Color selectedOption = new Color(0.5f, 0.8f, 0.5f);
+        Color highlightHide = new Color(0.5f, 0.5f, 0.5f, 0.8f);
+        Color selectedOption = CommonActions.selectionColor;
 
 
         [MenuItem("GabSith/Niche/Material Editor", false, 1000)]
@@ -59,6 +62,9 @@ namespace GabSith.WFT
         {
             CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
             suffix = ProjectSettingsManager.GetString(MaterialEditorFolderSuffixKey);
+
+            selectedOption = CommonActions.selectionColor;
+            converterMode.valueChanged.AddListener(new UnityAction(Repaint));
 
         }
 
@@ -161,15 +167,15 @@ namespace GabSith.WFT
                 {
                     case 1:
                         if (presets[i] == "Active")
-                            GUI.color = selectedOption;
+                            GUI.backgroundColor = selectedOption;
                         break;
                     case 2:
                         if (presets[i] == "Quest")
-                            GUI.color = selectedOption;
+                            GUI.backgroundColor = selectedOption;
                         break;
                     case 3:
                         if (presets[i] == "VRM")
-                            GUI.color = selectedOption;
+                            GUI.backgroundColor = selectedOption;
                         break;
 
                     default:
@@ -181,7 +187,7 @@ namespace GabSith.WFT
                 if (GUILayout.Button(presets[i]))
                     preset = i;
 
-                GUI.color = defaultColor;
+                GUI.backgroundColor = defaultColor;
             }
 
             EditorGUILayout.EndHorizontal();
@@ -191,85 +197,86 @@ namespace GabSith.WFT
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            converterMode = EditorGUILayout.ToggleLeft("Material Conversion", converterMode);
-
-            if (converterMode)
+            converterMode.target = EditorGUILayout.ToggleLeft("Material Conversion", converterMode.target);
+            using (var group = new EditorGUILayout.FadeGroupScope(converterMode.faded))
             {
-
-                //Debug.Log(Shader.Find("VRM/MToon"));
-                //Debug.Log(Shader.Find("VRChat/Mobile/Toon Lit"));
-                //Debug.Log(Shader.Find("VRChat/Mobile/Standard Lite"));
-
-                string[] selectedConvModes = new string[2] { "Quest", "VRM" };
-                Shader selectedShader = null;
-                selectedConvMode = GUILayout.Toolbar(selectedConvMode, selectedConvModes);
-
-                switch (selectedConvMode)
+                if (group.visible)
                 {
-                    case 0:
-                        EditorGUILayout.Space();
-                        selectedQuestShader = EditorGUILayout.Popup(selectedQuestShader, new string[2] { "Toon Lit", "Standard Lite" });
-                        switch (selectedQuestShader)
-                        {
-                            case 0:
-                                selectedShader = Shader.Find("VRChat/Mobile/Toon Lit");
-                                break;
-                            case 1:
-                                selectedShader = Shader.Find("VRChat/Mobile/Standard Lite");
-                                break;
-                            default:
-                                break;
-                        }
-                        break;
-                    case 1:
-                        EditorGUILayout.Space();
-                        selectedQuestShader = EditorGUILayout.Popup(selectedQuestShader, new string[2] { "MToon", "MToon10" });
-                        switch (selectedQuestShader)
-                        {
-                            case 0:
-                                selectedShader = Shader.Find("VRM/MToon");
-                                break;
-                            case 1:
-                                selectedShader = Shader.Find("VRM10/MToon10");
-                                break;
-                            default:
-                                break;
-                        }
 
+                    //Debug.Log(Shader.Find("VRM/MToon"));
+                    //Debug.Log(Shader.Find("VRChat/Mobile/Toon Lit"));
+                    //Debug.Log(Shader.Find("VRChat/Mobile/Standard Lite"));
 
-                        break;
+                    string[] selectedConvModes = new string[2] { "Quest", "VRM" };
+                    Shader selectedShader = null;
+                    selectedConvMode = GUILayout.Toolbar(selectedConvMode, selectedConvModes);
 
-                    default:
-                        break;
-                }
-
-                // TODO: Give the option to select which shader per material. Have a button to set all materials to the same shader
-                // Duplicate the material to the set folder, then change the shader to the selected one
-                // Create a copy of the avatar in the hierarchy. get the path to the material from the original one and change them to the new one
-                // For VRM specially, use "if (Shader.Find("VRM/MToon") != null" first)
-
-
-                // Folder
-
-
-                EditorGUILayout.Space();
-
-                CommonActions.SelectFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey, MaterialEditorFolderSuffixKey, ref suffix);
-
-                EditorGUILayout.Space(10);
-                if (GUILayout.Button("Create Materials", new GUIStyle(GUI.skin.button) { fixedHeight = 35, fontSize = 13 }))
-                {
-                    if (selectedShader != null)
-                        CreateMaterials(parent, selectedConvModes[selectedConvMode], selectedShader);
-                    else
+                    switch (selectedConvMode)
                     {
-                        Debug.LogError("Shader not found!");
+                        case 0:
+                            EditorGUILayout.Space();
+                            selectedQuestShader = EditorGUILayout.Popup(selectedQuestShader, new string[2] { "Toon Lit", "Standard Lite" });
+                            switch (selectedQuestShader)
+                            {
+                                case 0:
+                                    selectedShader = Shader.Find("VRChat/Mobile/Toon Lit");
+                                    break;
+                                case 1:
+                                    selectedShader = Shader.Find("VRChat/Mobile/Standard Lite");
+                                    break;
+                                default:
+                                    break;
+                            }
+                            break;
+                        case 1:
+                            EditorGUILayout.Space();
+                            selectedQuestShader = EditorGUILayout.Popup(selectedQuestShader, new string[2] { "MToon", "MToon10" });
+                            switch (selectedQuestShader)
+                            {
+                                case 0:
+                                    selectedShader = Shader.Find("VRM/MToon");
+                                    break;
+                                case 1:
+                                    selectedShader = Shader.Find("VRM10/MToon10");
+                                    break;
+                                default:
+                                    break;
+                            }
+
+
+                            break;
+
+                        default:
+                            break;
+                    }
+
+                    // TODO: Give the option to select which shader per material. Have a button to set all materials to the same shader
+                    // Duplicate the material to the set folder, then change the shader to the selected one
+                    // Create a copy of the avatar in the hierarchy. get the path to the material from the original one and change them to the new one
+                    // For VRM specially, use "if (Shader.Find("VRM/MToon") != null" first)
+
+
+                    // Folder
+
+
+                    EditorGUILayout.Space();
+
+                    CommonActions.SelectFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey, MaterialEditorFolderSuffixKey, ref suffix);
+
+                    EditorGUILayout.Space(10);
+                    if (GUILayout.Button("Create Materials", new GUIStyle(GUI.skin.button) { fixedHeight = 35, fontSize = 13 }))
+                    {
+                        if (selectedShader != null)
+                            CreateMaterials(parent, selectedConvModes[selectedConvMode], selectedShader);
+                        else
+                        {
+                            Debug.LogError("Shader not found!");
+                        }
+
                     }
 
                 }
-
             }
-
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(10);

@@ -9,6 +9,9 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 using UnityEditor.Animations;
 using System;
 
+using UnityEditor.AnimatedValues;
+using UnityEngine.Events;
+
 
 namespace GabSith.WFT
 {
@@ -28,8 +31,8 @@ namespace GabSith.WFT
 
         string[] selectedConvModes = new string[6] { "Expression", "FX", "Gesture", "Action", "Base", "Additive" };
 
-        bool settingsMode = false;
-        bool editMode = false;
+        //bool settingsMode = false;
+        //bool searchMode = false;
         bool editingOptions = false;
         bool caseSensitive = false;
         string find = "";
@@ -38,7 +41,12 @@ namespace GabSith.WFT
         bool highlightMode = false;
         List<bool> highlightHide = new List<bool> { };
 
-        bool globalCreationMode = false;
+        AnimBool settingsMode = new AnimBool(false);
+        AnimBool searchMode = new AnimBool(false);
+        AnimBool globalCreationMode = new AnimBool(false);
+
+
+        //bool globalCreationMode = false;
         bool[] globalCreationBools = new bool[6] { true, true, false, false, false, false };
 
         bool[] changesMadeGlobalDelay = new bool[5] { false, false, false, false, false };
@@ -69,7 +77,11 @@ namespace GabSith.WFT
 
         private void OnEnable()
         {
-            defaultColor = GUI.color;
+            defaultColor = GUI.backgroundColor;
+            settingsMode.valueChanged.AddListener(new UnityAction(Repaint));
+            searchMode.valueChanged.AddListener(new UnityAction(Repaint));
+            globalCreationMode.valueChanged.AddListener(new UnityAction(Repaint));
+
         }
 
         private void OnBecameVisible()
@@ -80,10 +92,6 @@ namespace GabSith.WFT
             }
         }
 
-        private void Start()
-        {
-            Debug.Log("Test");
-        }
 
         private void OnGUI()
         {
@@ -158,121 +166,110 @@ namespace GabSith.WFT
                 }
             }
 
-            if (globalCreationMode)
+            // Create Global
+            if (CommonActions.ToggleButton("▼ Create Global ▼", globalCreationMode.target, GUILayout.Height(25f)))
             {
-                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-            }
-
-            if (GUILayout.Button("▼ Create Global ▼", GUILayout.Height(25)))
-            {
-                settingsMode = false;
-                editMode = false;
-                globalCreationMode = !globalCreationMode;
-            }
-            GUI.color = defaultColor;
-
-            if (editMode)
-            {
-                GUI.color = new Color(0.5f, 0.8f, 0.5f);
+                settingsMode.target = false;
+                searchMode.target = false;
+                globalCreationMode.target = !globalCreationMode.target;
             }
 
             // Backup Icon: CustomTool@2x
-            if (GUILayout.Button(EditorGUIUtility.IconContent("d_Search Icon"), GUILayout.Height(25), GUILayout.Width(25))) // Edit Mode
+            // Search Mode
+            if (CommonActions.ToggleButton(EditorGUIUtility.IconContent("d_Search Icon"), searchMode.target, GUILayout.Height(25f), GUILayout.Width(25)))
             {
-                globalCreationMode = false;
-                settingsMode = false;
-                editMode = !editMode;
+                globalCreationMode.target = false;
+                settingsMode.target = false;
+                searchMode.target = !searchMode.target;
             }
-            GUI.color = defaultColor;
 
-            if (settingsMode)
+            // Settings
+            if (CommonActions.ToggleButton(EditorGUIUtility.IconContent("_Popup@2x"), settingsMode.target, GUILayout.Height(25f), GUILayout.Width(25)))
             {
-                GUI.color = new Color(0.5f, 0.8f, 0.5f);
+                globalCreationMode.target = false;
+                searchMode.target = false;
+                settingsMode.target = !settingsMode.target;
             }
-            if (GUILayout.Button(EditorGUIUtility.IconContent("_Popup@2x"), GUILayout.Height(25), GUILayout.Width(25))) // Settings
-            {
-                globalCreationMode = false;
-                editMode = false;
-                settingsMode = !settingsMode;
-            }
-            GUI.color = defaultColor;
+            GUI.backgroundColor = defaultColor;
 
             EditorGUILayout.EndHorizontal();
 
+            using (var group = new EditorGUILayout.FadeGroupScope(globalCreationMode.faded))
 
-            if (globalCreationMode && CreateGlobal())
-            {
-                for (int i = 0; i < changesMadeGlobalDelay.Length; i++)
+                if (group.visible && CreateGlobal())
                 {
-                    if (changesMadeGlobalDelay[i])
+                    for (int i = 0; i < changesMadeGlobalDelay.Length; i++)
                     {
-                        changesMadeGlobalDelay[i] = false;
+                        if (changesMadeGlobalDelay[i])
+                        {
+                            changesMadeGlobalDelay[i] = false;
+                        }
                     }
                 }
-            }
 
-            if (editMode)
-            {
-                List<string> names = new List<string> { };
-                List<string> newNames = new List<string> { };
+            using (var group = new EditorGUILayout.FadeGroupScope(searchMode.faded))
 
-                if (expressionParameters != null)
+                if (group.visible)
                 {
-                    foreach (var item in expressionParameters)
-                    {
-                        names.Add(item.name);
-                    }
-                }
-                else
-                {
-                    foreach (var item in controllerParameters)
-                    {
-                        names.Add(item.name);
-                    }
-                }
-                //newNames = EditMode(names);
+                    List<string> names = new List<string> { };
+                    List<string> newNames = new List<string> { };
 
-
-                if (expressionParameters != null)
-                {
-                    newNames = EditMode(names, expressionParameters);
-                }
-                else
-                {
-                    newNames = EditMode(names, null, controllerParameters);
-                }
-
-
-
-                if (newNames != null)
-                {
                     if (expressionParameters != null)
                     {
-                        for (int i = 0; i < expressionParameters.Count; i++)
+                        foreach (var item in expressionParameters)
                         {
-                            Debug.Log(expressionParameters[i].name + "=" + newNames[i]);
-
-                            expressionParameters[i].name = newNames[i];
+                            names.Add(item.name);
                         }
-                        EditorUtility.SetDirty(avatarDescriptor.expressionParameters);
                     }
-                    else if (controllerParameters != null)
+                    else
                     {
-                        for (int i = 0; i < controllerParameters.Count; i++)
+                        foreach (var item in controllerParameters)
                         {
-                            controllerParameters[i].name = newNames[i];
+                            names.Add(item.name);
                         }
-                        EditorUtility.SetDirty((AnimatorController)avatarDescriptor.baseAnimationLayers[SelectedParameterMapping(selectedParamMode)].animatorController);
                     }
+
+                    if (expressionParameters != null)
+                    {
+                        newNames = EditMode(names, expressionParameters);
+                    }
+                    else
+                    {
+                        newNames = EditMode(names, null, controllerParameters);
+                    }
+
+
+
+                    if (newNames != null)
+                    {
+                        if (expressionParameters != null)
+                        {
+                            for (int i = 0; i < expressionParameters.Count; i++)
+                            {
+                                Debug.Log(expressionParameters[i].name + "=" + newNames[i]);
+
+                                expressionParameters[i].name = newNames[i];
+                            }
+                            EditorUtility.SetDirty(avatarDescriptor.expressionParameters);
+                        }
+                        else if (controllerParameters != null)
+                        {
+                            for (int i = 0; i < controllerParameters.Count; i++)
+                            {
+                                controllerParameters[i].name = newNames[i];
+                            }
+                            EditorUtility.SetDirty((AnimatorController)avatarDescriptor.baseAnimationLayers[SelectedParameterMapping(selectedParamMode)].animatorController);
+                        }
+                    }
+
                 }
 
-            }
-
-            if (settingsMode)
-            {
-                showClone = EditorGUILayout.ToggleLeft("Show Clone", showClone);
-                showDelete = EditorGUILayout.ToggleLeft("Show Delete", showDelete);
-            }
+            using (var group = new EditorGUILayout.FadeGroupScope(settingsMode.faded))
+                if (group.visible)
+                {
+                    showClone = EditorGUILayout.ToggleLeft("Show Clone", showClone);
+                    showDelete = EditorGUILayout.ToggleLeft("Show Delete", showDelete);
+                }
 
             EditorGUILayout.Space();
 
@@ -371,7 +368,7 @@ namespace GabSith.WFT
 
                 for (int i = 0; i < items.Count; i++)
                 {
-                    if (editMode && highlightMode && highlightHide.Count > i && !highlightHide[i])
+                    if (searchMode.target && highlightMode && highlightHide.Count > i && !highlightHide[i])
                     {
                         GUI.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
                     }
@@ -621,6 +618,7 @@ namespace GabSith.WFT
                 }
 
 
+
                 Event e = Event.current;
                 GUILayout.Space(10);
 
@@ -631,6 +629,9 @@ namespace GabSith.WFT
                     EditorUtility.SetDirty(avatarDescriptor);
                     return;
                 }
+
+                EditorGUILayout.HelpBox("Modifying parameters here might break existing transitions/drivers", MessageType.Info);
+
 
                 scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
 
@@ -667,7 +668,7 @@ namespace GabSith.WFT
 
                 for (int i = 0; i < itemsController.Count; i++)
                 {
-                    if (editMode && highlightMode && highlightHide.Count > i && !highlightHide[i])
+                    if (searchMode.target && highlightMode && highlightHide.Count > i && !highlightHide[i])
                     {
                         GUI.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
                     }
@@ -860,12 +861,12 @@ namespace GabSith.WFT
                 find = EditorGUILayout.TextField("Find: ", find, GUILayout.MinWidth(25));
 
                 if (caseSensitive)
-                    GUI.color = new Color(0.5f, 0.8f, 0.5f);
+                    GUI.backgroundColor = CommonActions.selectionColor;
                 if (GUILayout.Button(EditorGUIUtility.IconContent("d_TrueTypeFontImporter Icon"), GUILayout.Height(EditorGUIUtility.singleLineHeight), GUILayout.Width(25)))
                 {
                     caseSensitive = !caseSensitive;
                 }
-                GUI.color = defaultColor;
+                GUI.backgroundColor = defaultColor;
             }
 
             EditorGUILayout.Space();
@@ -1150,7 +1151,7 @@ namespace GabSith.WFT
             }
 
 
-            if (GUILayout.Button("Add to selected"))
+            if (GUILayout.Button("Add to selected", GUILayout.Height(25f)))
             {
                 List<UnityEngine.Object> objectsToCheck = new List<UnityEngine.Object> { avatarDescriptor.expressionParameters,
                 avatarDescriptor.baseAnimationLayers[0].animatorController,

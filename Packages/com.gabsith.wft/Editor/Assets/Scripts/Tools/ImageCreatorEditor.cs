@@ -5,11 +5,15 @@ using UnityEditor;
 using System.IO;
 using System.Linq;
 
+using UnityEditor.AnimatedValues;
+using UnityEngine.Events;
 
 namespace GabSith.WFT
 {
     public class ImageCreator : EditorWindow
     {
+        AnimBool showPreview = new AnimBool(false);
+
         private string screenshotName;
         private int resolutionWidth = 256;
         private int resolutionHeight = 256;
@@ -17,7 +21,7 @@ namespace GabSith.WFT
         private Color backgroundColor = new Color(0.69f, 0.34f, 0.34f);
         private bool useSkybox = false;
         private bool useTransparentBackground = true;
-        private bool showPreview = false;
+        //private bool showPreview = false;
         private bool useSceneView = true;
         private Camera selectedCamera;
         private RenderTexture previewTexture;
@@ -43,6 +47,7 @@ namespace GabSith.WFT
             EditorWindow w = EditorWindow.GetWindow(typeof(ImageCreator), false, "Image Creator");
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("FrameCapture On").image, text = "Image Creator", tooltip = "♥" };
 
+
         }
 
         private void OnEnable()
@@ -50,6 +55,7 @@ namespace GabSith.WFT
             SceneView.duringSceneGui += OnSceneGUI;
             suffix = ProjectSettingsManager.GetString(ScreenshotFolderSuffixKey);
 
+            showPreview.valueChanged.AddListener(new UnityAction(Repaint));
         }
         private void OnBecameInvisible()
         {
@@ -167,7 +173,7 @@ namespace GabSith.WFT
             CommonActions.SelectFolder(ScreenshotUseGlobalKey, ScreenshotFolderKey, ScreenshotFolderSuffixKey, ref suffix);
 
             GUILayout.Space(10);
-            showPreview = EditorGUILayout.Toggle("Show Preview", showPreview);
+            showPreview.target = EditorGUILayout.Toggle("Show Preview", showPreview.target);
 
             /*
             EditorGUI.BeginChangeCheck();
@@ -178,7 +184,8 @@ namespace GabSith.WFT
                 CreateBorderTexture();
             }
             */
-            if (showPreview && isVisible)
+            using (var group = new EditorGUILayout.FadeGroupScope(showPreview.faded))
+            if (group.visible && isVisible)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 UpdatePreview();
@@ -324,7 +331,7 @@ namespace GabSith.WFT
 
         private void OnSceneGUI(SceneView sceneView)
         {
-            if (showPreview && useSceneView)
+            if (showPreview.target && useSceneView)
             {
                 Repaint();
             }

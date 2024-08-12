@@ -23,7 +23,7 @@ namespace GabSith.WFT
 
 
         bool useSelected = false;
-        string previousSelection;
+        int previousSelection;
 
         VRCExpressionParameters parameters;
         VRCExpressionsMenu menu;
@@ -43,6 +43,14 @@ namespace GabSith.WFT
         Rect ghostRect;
         Color defaultColor;
 
+        Color newControlColor = new Color(0.4f, 1f, 0.4f);
+
+        Color buttonColor = new Color { r = 1f, g = 1f, b = 0.7f, a = 1 };
+        Color toggleColor = new Color { r = 0.7f, g = 0.7f, b = 1f, a = 1 };
+        Color radialColor = new Color { r = 1f, g = 0.7f, b = 1f, a = 1 };
+        Color otherColor = new Color { r = 1f, g = 0.7f, b = 0.7f, a = 1 };
+        Color folderColor = new Color { r = 1f, g = 1f, b = 1f, a = 1 };
+
 
         [MenuItem("GabSith/Menu Editor", false, 1)]
 
@@ -59,7 +67,6 @@ namespace GabSith.WFT
 
         private void OnEnable()
         {
-
             if (avatarDescriptor == null)
             {
                 CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
@@ -76,9 +83,8 @@ namespace GabSith.WFT
             } 
 
             defaultColor = GUI.color;
-
+            
         }
-
 
         void OnGUI()
         {
@@ -112,14 +118,17 @@ namespace GabSith.WFT
             EditorGUILayout.Space();
 
             // Use Selected
-            if (useSelected)
-            {
-                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-            }
-            if (GUILayout.Button("Use Selected Menu"))
+            //if (useSelected)
+            //{
+                //GUI.backgroundColor = CommonActions.selectionColor;
+                //GUI.backgroundColor = ProjectSettingsManager.GetColor("ButtonsColorKey", CommonActions.selectionColor);
+
+            //}
+            //if (GUILayout.Button("Use Selected Menu", GUILayout.Height(25f)))
+            if (CommonActions.ToggleButton("Use Selected Menu", useSelected, GUILayout.Height(25f)))
             {
                 useSelected = !useSelected;
-                previousSelection = "";
+                previousSelection = 0;
 
                 if (useSelected)
                 {
@@ -139,7 +148,7 @@ namespace GabSith.WFT
                 RefreshMenu();
 
             }
-            GUI.color = defaultColor;
+            //GUI.backgroundColor = defaultColor;
 
 
             // Selection Changed
@@ -148,11 +157,12 @@ namespace GabSith.WFT
                 VRCExpressionsMenu[] selection = Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets);
                 if (selection.Length > 0)
                 {
-                    string selectionID = selection[0].GetInstanceID().ToString();
+                    int selectionID = selection[0].GetInstanceID();
                     if (selectionID != previousSelection)
                     {
                         menu = selection[0];
                         RefreshMenu();
+                        Repaint();
 
                         previousSelection = selectionID;
                     }
@@ -191,32 +201,28 @@ namespace GabSith.WFT
 
                 {
                     EditorGUILayout.BeginHorizontal();
-                    //using (new EditorGUILayout.HorizontalScope())
+                    
+                    GUILayout.Label("Current Menu: ");
+                    EditorGUILayout.ObjectField(lastMenu, typeof(VRCExpressionsMenu), false);
+
+                    if (controlList.Count == 1)
                     {
-                        //GUILayout.Label("Current Menu: " + controlList[controlList.Count - 1].name);
-                        GUILayout.Label("Current Menu: ");
-                        EditorGUILayout.ObjectField(lastMenu, typeof(VRCExpressionsMenu), false);
-
-                        if (controlList.Count == 1)
-                        {
-                            GUI.enabled = false;
-                        }
-
-                        if (GUILayout.Button("Back", GUILayout.Width(123)))
-                        {
-                            controlList.RemoveAt(lastIndex);
-                        }
-
-                        GUI.enabled = true;
-
-
-                        if (GUILayout.Button("Refresh", GUILayout.Width(70f)))
-                        {
-                            RefreshMenu();
-                        }
-
-
+                        GUI.enabled = false;
                     }
+
+                    if (GUILayout.Button("Back", GUILayout.Width(123)))
+                    {
+                        controlList.RemoveAt(lastIndex);
+                    }
+                    GUI.enabled = true;
+
+
+                    if (GUILayout.Button("Refresh", GUILayout.Width(70f)))
+                    {
+                        RefreshMenu();
+                    }
+
+                    
                     EditorGUILayout.EndHorizontal();
 
 
@@ -228,7 +234,7 @@ namespace GabSith.WFT
                             {
                                 if (i == currentlyDraggingItemIndex)
                                 {
-                                    GUI.color = Color.grey; // Change the color of the item being dragged
+                                    GUI.color = Color.grey; // Color of the item being dragged
                                 }
 
 
@@ -250,12 +256,17 @@ namespace GabSith.WFT
 
                                         if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu) // If the control is a menu
                                         {
+                                            Color def = GUI.backgroundColor;
+                                            GUI.backgroundColor = folderColor;
+
                                             if (GUILayout.Button(new GUIContent(control.name + " ➔", control.icon), menuButtons, GUILayout.MaxWidth(width)))
                                             {
                                                 if (control.subMenu != null)
                                                     controlList.Add(control.subMenu);
                                             }
                                             CheckDragAndDrop(ref control.icon, ref control.subMenu, lastMenu);
+                                            GUI.backgroundColor = def;
+
                                         }
                                         else
                                         {
@@ -264,16 +275,16 @@ namespace GabSith.WFT
                                             switch (control.type)
                                             {
                                                 case VRCExpressionsMenu.Control.ControlType.Button:
-                                                    GUI.backgroundColor = new Color { r = 1f, g = 1f, b = 0.7f, a = 1 };
+                                                    GUI.backgroundColor = buttonColor;
                                                     break;
                                                 case VRCExpressionsMenu.Control.ControlType.Toggle:
-                                                    GUI.backgroundColor = new Color { r = 0.7f, g = 0.7f, b = 1f, a = 1 };
+                                                    GUI.backgroundColor = toggleColor;
                                                     break;
                                                 case VRCExpressionsMenu.Control.ControlType.RadialPuppet:
-                                                    GUI.backgroundColor = new Color { r = 1f, g = 0.7f, b = 1f, a = 1 };
+                                                    GUI.backgroundColor = radialColor;
                                                     break;
                                                 default:
-                                                    GUI.backgroundColor = new Color { r = 1f, g = 0.7f, b = 0.7f, a = 1 };
+                                                    GUI.backgroundColor = otherColor;
                                                     break;
                                             }
 
@@ -292,9 +303,7 @@ namespace GabSith.WFT
                                         // Edit
                                         if (GUILayout.Button(new GUIContent("Edit", "Opens the Menu Control Editor"), menuButtons, GUILayout.Width(60)))
                                         {
-
                                             OpenWindow(control, i, lastMenu, parameters);
-
                                         }
 
 
@@ -324,17 +333,13 @@ namespace GabSith.WFT
                                         EditorGUILayout.EndVertical();
 
 
-
-
                                         // Delete
                                         if (GUILayout.Button(new GUIContent("Delete"), menuButtons, GUILayout.Width(60)))
                                         {
                                             lastMenu.controls.RemoveAt(i);
                                             EditorUtility.SetDirty(lastMenu);
                                         }
-
                                     }
-
                                 }
 
                                 GUI.color = defaultColor; // Reset color
@@ -353,17 +358,15 @@ namespace GabSith.WFT
                                 }
                                 else if (e.type == EventType.MouseUp && dropArea.Contains(e.mousePosition) && currentlyDraggingItemIndex > -1)
                                 {
-                                    //controlList[controlList.Count - 1].controls = new List<VRCExpressionsMenu.Control>(items);
                                     currentlyDraggingItemIndex = -1;
                                     EditorGUIUtility.SetWantsMouseJumping(0);
-                                    Repaint(); // Force the window to repaint
+                                    Repaint();
                                 }
 
                                 // Draw a ghost item at the mouse position while dragging
                                 if (currentlyDraggingItemIndex > -1)
                                 {
                                     ghostRect = new Rect(dropArea.x, e.mousePosition.y - (dropArea.height / 2), dropArea.width, dropArea.height);
-                                    //EditorGUI.DrawRect(ghostRect, new Color(0.5f, 0.5f, 0.5f, 0.2f));
                                 }
 
                                 if (currentlyDraggingItemIndex > -1 && dropArea.Contains(e.mousePosition))
@@ -372,16 +375,15 @@ namespace GabSith.WFT
                                     lastMenu.controls.RemoveAt(currentlyDraggingItemIndex);
                                     lastMenu.controls.Insert(i, temp);
                                     currentlyDraggingItemIndex = i;
-                                    Repaint(); // Force the window to repaint
+                                    Repaint();
                                 }
-
                             }
 
                             // New Control
                             else
                             {
                                 Color def = GUI.backgroundColor;
-                                GUI.backgroundColor = new Color { r = 0.4f, g = 1f, b = 0.4f, a = 1 };
+                                GUI.backgroundColor = newControlColor;
 
                                 using (new EditorGUILayout.HorizontalScope(new GUIStyle() { fixedHeight = 45 }))
                                 {

@@ -65,15 +65,22 @@ namespace GabSith.WFT
         string ActionGUID = "3e479eeb9db24704a828bffb15406520";
 
 
-        bool foldLayers = false;
-        bool foldExpressions = false;
-        bool foldModel = true;
+        AnimBool foldLayers = new AnimBool(false);
+        AnimBool foldExpressions = new AnimBool(false);
+        AnimBool foldModel = new AnimBool(false);
+        AnimBool foldDebug = new AnimBool(false);
+
+        bool modelIssues = false;
+
+        //bool foldLayers = false;
+        //bool foldExpressions = false;
+        //bool foldModel = true;
 
 
-        bool fold = false;
+        //bool fold = false;
         //bool advancedFold = false;
         Vector2 scrollPosDescriptors;
-        Vector2 scrollPosList;
+        Vector2 scrollPos;
 
         private const string AvatarSetupFolderKey = "AvatarSetupFolderKey";
         private const string AvatarSetupUseGlobalKey = "AvatarSetupUseGlobalKey";
@@ -89,10 +96,7 @@ namespace GabSith.WFT
 
         public static void ShowWindow()
         {
-            //Show existing window instance. If one doesn't exist, make one.
             EditorWindow w = EditorWindow.GetWindow(typeof(AvatarSetupEditor), false, "Avatar Setup");
-            //GUIContent titleContent = new GUIContent("Test", (Texture2D)AssetDatabase.LoadAssetAtPath("Assets/Bon/Assets/Materials/Textures/KannaSip.png", typeof(Texture2D)));
-            //EditorGUIUtility.IconContent("d_Audio Mixer@2x");
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_Audio Mixer@2x").image, text = "Avatar Setup", tooltip = "♥" };
             w.minSize = new Vector2(320, 350);
         }
@@ -100,7 +104,6 @@ namespace GabSith.WFT
 
         private void OnEnable()
         {
-
             if (avatar == null)
             {
                 CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
@@ -113,13 +116,17 @@ namespace GabSith.WFT
 
             suffix = ProjectSettingsManager.GetString(AvatarSetupFolderSuffixKey);
 
-
-
+            foldLayers.valueChanged.AddListener(new UnityAction(Repaint));
+            foldExpressions.valueChanged.AddListener(new UnityAction(Repaint));
+            foldModel.valueChanged.AddListener(new UnityAction(Repaint));
+            foldDebug.valueChanged.AddListener(new UnityAction(Repaint));
         }
 
         void OnGUI()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
 
             CommonActions.GenerateTitle("Avatar Setup");
 
@@ -164,7 +171,7 @@ namespace GabSith.WFT
             }
 
 
-            scrollPosList = EditorGUILayout.BeginScrollView(scrollPosList, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
+            //scrollPosList = EditorGUILayout.BeginScrollView(scrollPosList, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
 
 
             if (avatar != null)
@@ -197,80 +204,86 @@ namespace GabSith.WFT
 
                 EditorGUILayout.Space(10);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                foldLayers = EditorGUILayout.BeginFoldoutHeaderGroup(foldLayers, "Playable Layers");
-                if (foldLayers)
+                foldLayers.target = EditorGUILayout.BeginFoldoutHeaderGroup(foldLayers.target, "Playable Layers");
+                using (var group = new EditorGUILayout.FadeGroupScope(foldLayers.faded))
                 {
-                    //FX Layer
-                    ReallyCheckLayers(FXLayer, ref FXLayerName, "FX", FXGUID, 4, "FX Layer");
-                    //Gesture Layer
-                    ReallyCheckLayers(GestureLayer, ref GestureLayerName, "Gesture", GestureGUID, 2, "Gesture Layer");
-                    //Base Layer
-                    ReallyCheckLayers(BaseLayer, ref BaseLayerName, "Base", BaseGUID, 0, "Base Layer");
-                    //Action Layer
-                    ReallyCheckLayers(ActionLayer, ref ActionLayerName, "Action", ActionGUID, 3, "Action Layer");
-                    //Additive Layer
-                    ReallyCheckLayers(AdditiveLayer, ref AdditiveLayerName, "Additive", AdditiveGUID, 1, "Additive Layer");
+                    if (group.visible)
+                    {
+                        //FX Layer
+                        ReallyCheckLayers(FXLayer, ref FXLayerName, "FX", FXGUID, 4, "FX Layer");
+                        //Gesture Layer
+                        ReallyCheckLayers(GestureLayer, ref GestureLayerName, "Gesture", GestureGUID, 2, "Gesture Layer");
+                        //Base Layer
+                        ReallyCheckLayers(BaseLayer, ref BaseLayerName, "Base", BaseGUID, 0, "Base Layer");
+                        //Action Layer
+                        ReallyCheckLayers(ActionLayer, ref ActionLayerName, "Action", ActionGUID, 3, "Action Layer");
+                        //Additive Layer
+                        ReallyCheckLayers(AdditiveLayer, ref AdditiveLayerName, "Additive", AdditiveGUID, 1, "Additive Layer");
 
+                    }
                 }
                 EditorGUILayout.EndFoldoutHeaderGroup();
 
 
                 EditorGUILayout.Space();
-                foldExpressions = EditorGUILayout.BeginFoldoutHeaderGroup(foldExpressions, "Expressions");
-                if (foldExpressions)
+                foldExpressions.target = EditorGUILayout.BeginFoldoutHeaderGroup(foldExpressions.target, "Expressions");
+                using (var group = new EditorGUILayout.FadeGroupScope(foldExpressions.faded))
                 {
-                    // Expression Menu
-                    if (avatarDescriptor.expressionsMenu != null)
+                    if (group.visible)
                     {
-                        EditorGUILayout.HelpBox("Expression Menu found.", MessageType.Info);
-                    }
-                    else
-                    {
-                        EditorGUILayout.HelpBox("Expression Menu not found.", MessageType.Warning);
+                        // Expression Menu
+                        if (avatarDescriptor.expressionsMenu != null)
+                        {
+                            EditorGUILayout.HelpBox("Expression Menu found.", MessageType.Info);
+                        }
+                        else
+                        {
+                            EditorGUILayout.HelpBox("Expression Menu not found.", MessageType.Warning);
 
-                        EditorGUILayout.BeginHorizontal();
-                        menuName = EditorGUILayout.TextField("Menu Name", menuName);
-                        if (string.IsNullOrEmpty(menuName))
-                        {
-                            menuName = "Menu";
+                            EditorGUILayout.BeginHorizontal();
+                            menuName = EditorGUILayout.TextField("Menu Name", menuName);
+                            if (string.IsNullOrEmpty(menuName))
+                            {
+                                menuName = "Menu";
+                            }
+                            if (GUILayout.Button("Create Expression Menu", GUILayout.Width(200)))
+                            {
+                                avatarDescriptor.expressionsMenu = CreateExpressionMenu(menuName);
+                            }
+                            EditorGUILayout.EndHorizontal();
+                            if (CheckRepeatedMenu(GetFolder() + "/" + menuName + ".asset"))
+                            {
+                                EditorGUILayout.HelpBox("An asset with that name already exists in the selected path. If a new Menu is created, the old one will be replaced.", MessageType.Warning);
+                            }
+                            EditorGUILayout.Space();
                         }
-                        if (GUILayout.Button("Create Expression Menu", GUILayout.Width(200)))
-                        {
-                            avatarDescriptor.expressionsMenu = CreateExpressionMenu(menuName);
-                        }
-                        EditorGUILayout.EndHorizontal();
-                        if (CheckRepeatedMenu(GetFolder() + "/" + menuName + ".asset"))
-                        {
-                            EditorGUILayout.HelpBox("An asset with that name already exists in the selected path. If a new Menu is created, the old one will be replaced.", MessageType.Warning);
-                        }
-                        EditorGUILayout.Space();
-                    }
 
-                    // Expression Parameters
-                    if (avatarDescriptor.expressionParameters != null)
-                    {
-                        EditorGUILayout.HelpBox("Expression Parameters found.", MessageType.Info);
-                    }
-                    else
-                    {
-                        EditorGUILayout.HelpBox("Expression Parameters not found.", MessageType.Warning);
+                        // Expression Parameters
+                        if (avatarDescriptor.expressionParameters != null)
+                        {
+                            EditorGUILayout.HelpBox("Expression Parameters found.", MessageType.Info);
+                        }
+                        else
+                        {
+                            EditorGUILayout.HelpBox("Expression Parameters not found.", MessageType.Warning);
 
-                        EditorGUILayout.BeginHorizontal();
-                        parametersName = EditorGUILayout.TextField("Parameters Name", parametersName);
-                        if (string.IsNullOrEmpty(parametersName))
-                        {
-                            parametersName = "Parameters";
+                            EditorGUILayout.BeginHorizontal();
+                            parametersName = EditorGUILayout.TextField("Parameters Name", parametersName);
+                            if (string.IsNullOrEmpty(parametersName))
+                            {
+                                parametersName = "Parameters";
+                            }
+                            if (GUILayout.Button("Create Expression Parameters", GUILayout.Width(200)))
+                            {
+                                avatarDescriptor.expressionParameters = CreateExpressionParameters(parametersName);
+                            }
+                            EditorGUILayout.EndHorizontal();
+                            if (CheckRepeatedParameters(GetFolder() + "/" + parametersName + ".asset"))
+                            {
+                                EditorGUILayout.HelpBox("An asset with that name already exists in the selected path. If a new Parameters asset is created, the old one will be replaced.", MessageType.Warning);
+                            }
+                            EditorGUILayout.Space();
                         }
-                        if (GUILayout.Button("Create Expression Parameters", GUILayout.Width(200)))
-                        {
-                            avatarDescriptor.expressionParameters = CreateExpressionParameters(parametersName);
-                        }
-                        EditorGUILayout.EndHorizontal();
-                        if (CheckRepeatedParameters(GetFolder() + "/" + parametersName + ".asset"))
-                        {
-                            EditorGUILayout.HelpBox("An asset with that name already exists in the selected path. If a new Parameters asset is created, the old one will be replaced.", MessageType.Warning);
-                        }
-                        EditorGUILayout.Space();
                     }
                 }
                 EditorGUILayout.EndFoldoutHeaderGroup();
@@ -297,76 +310,95 @@ namespace GabSith.WFT
             {
                 EditorGUILayout.Space(15);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                foldModel = EditorGUILayout.BeginFoldoutHeaderGroup(foldModel, "Model Settings");
-                if (foldModel)
+                EditorGUILayout.BeginHorizontal();
+                foldModel.target = EditorGUILayout.BeginFoldoutHeaderGroup(foldModel.target, "Model Settings");
+                if (modelIssues && GUILayout.Button("Auto Fix", GUILayout.Width(140f)))
                 {
-
-                    if (model == null)
+                    if (model != null)
                     {
-                        EditorGUILayout.HelpBox("Can't access the original model file.", MessageType.Warning);
+                        model.animationType = ModelImporterAnimationType.Human;
+                        model.isReadable = true;
+                        string pName = "legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes";
+                        PropertyInfo prop = model.GetType().GetProperty(pName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                        prop.GetValue(model); prop.SetValue(model, true);
+
+                        model.SaveAndReimport();
+                        MakeSureItDoesTheThing(model);
                     }
+                }
+                EditorGUILayout.EndHorizontal();
+                modelIssues = false;
 
-                    else
+                using (var group = new EditorGUILayout.FadeGroupScope(foldModel.faded))
+                {
+                    if (group.visible)
                     {
-                        if (model.animationType != ModelImporterAnimationType.Human)
+                        if (model == null)
                         {
-                            EditorGUILayout.BeginHorizontal();
-                            EditorGUILayout.HelpBox("Model rig type is not set to humanoid.", MessageType.Warning);
-                            if (GUILayout.Button("Set model rig as human", buttons))
-                            {
-
-                                model.animationType = ModelImporterAnimationType.Human;
-
-                                model.SaveAndReimport();
-                            }
-                            EditorGUILayout.EndHorizontal();
-
+                            EditorGUILayout.HelpBox("Can't access the original model file.", MessageType.Warning);
                         }
+
                         else
                         {
-                            EditorGUILayout.HelpBox("Model rig type is set to humanoid.", MessageType.Info);
-                        }
-
-                        if (model.isReadable)
-                        {
-                            EditorGUILayout.HelpBox("Model has Read/Write enabled.", MessageType.Info);
-                        }
-                        else
-                        {
-                            EditorGUILayout.BeginHorizontal();
-                            EditorGUILayout.HelpBox("Model doesn't have Read/Write enabled.", MessageType.Warning);
-                            if (GUILayout.Button("Enable Read/Write", buttons))
+                            if (model.animationType != ModelImporterAnimationType.Human)
                             {
-                                model.isReadable = true;
-                                model.SaveAndReimport();
-                                MakeSureItDoesTheThing(model);
+                                EditorGUILayout.BeginHorizontal();
+                                EditorGUILayout.HelpBox("Model rig type is not set to humanoid.", MessageType.Warning);
+                                modelIssues = true;
+                                if (GUILayout.Button("Set model rig as human", buttons))
+                                {
+                                    model.animationType = ModelImporterAnimationType.Human;
+                                    model.SaveAndReimport();
+                                }
+                                EditorGUILayout.EndHorizontal();
+
                             }
-                            EditorGUILayout.EndHorizontal();
-
-                        }
-
-                        if (model.importBlendShapeNormals == ModelImporterNormals.Calculate && !CheckBlendshapeNormalsLegacy())
-                        {
-                            EditorGUILayout.BeginHorizontal();
-                            EditorGUILayout.HelpBox("Blendshape Normals are set to Calculate and Legacy Blendshape Normals are off.", MessageType.Warning);
-
-
-                            if (GUILayout.Button("Use Legacy Blendshape Normals", buttons))
+                            else
                             {
-                                string pName = "legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes";
-                                PropertyInfo prop = model.GetType().GetProperty(pName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                                prop.GetValue(model); prop.SetValue(model, true);
-
-                                model.SaveAndReimport();
-                                MakeSureItDoesTheThing(model);
+                                EditorGUILayout.HelpBox("Model rig type is set to humanoid.", MessageType.Info);
                             }
-                            EditorGUILayout.EndHorizontal();
-                        }
-                        else
-                        {
-                            EditorGUILayout.HelpBox("Model Blendshape Normals are set up correctly.", MessageType.Info);
-                        }
 
+                            if (model.isReadable)
+                            {
+                                EditorGUILayout.HelpBox("Model has Read/Write enabled.", MessageType.Info);
+                            }
+                            else
+                            {
+                                EditorGUILayout.BeginHorizontal();
+                                EditorGUILayout.HelpBox("Model doesn't have Read/Write enabled.", MessageType.Warning);
+                                modelIssues = true;
+                                if (GUILayout.Button("Enable Read/Write", buttons))
+                                {
+                                    model.isReadable = true;
+                                    model.SaveAndReimport();
+                                    MakeSureItDoesTheThing(model);
+                                }
+                                EditorGUILayout.EndHorizontal();
+
+                            }
+
+                            if (model.importBlendShapeNormals == ModelImporterNormals.Calculate && !CheckBlendshapeNormalsLegacy())
+                            {
+                                EditorGUILayout.BeginHorizontal();
+                                EditorGUILayout.HelpBox("Blendshape Normals are set to Calculate and Legacy Blendshape Normals are off.", MessageType.Warning);
+                                modelIssues = true;
+                                if (GUILayout.Button("Use Legacy Blendshape Normals", buttons))
+                                {
+                                    string pName = "legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes";
+                                    PropertyInfo prop = model.GetType().GetProperty(pName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                                    prop.GetValue(model); prop.SetValue(model, true);
+
+                                    model.SaveAndReimport();
+                                    MakeSureItDoesTheThing(model);
+                                }
+                                EditorGUILayout.EndHorizontal();
+                            }
+                            else
+                            {
+                                EditorGUILayout.HelpBox("Model Blendshape Normals are set up correctly.", MessageType.Info);
+                            }
+
+                        }
                     }
                 }
                 EditorGUILayout.EndFoldoutHeaderGroup();
@@ -388,83 +420,83 @@ namespace GabSith.WFT
             GUI.enabled = true;
 
 
-            fold = EditorGUILayout.BeginFoldoutHeaderGroup(fold, "Debug");
-            if (fold)
+            foldDebug.target = EditorGUILayout.BeginFoldoutHeaderGroup(foldDebug.target, "Debug");
+            using (var group = new EditorGUILayout.FadeGroupScope(foldDebug.faded))
             {
-
-                if (GUILayout.Button("Check Model"))
-                {
-                    UnityEngine.Object originalObject = PrefabUtility.GetCorrespondingObjectFromOriginalSource(avatar);
-                    Debug.Log(AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(originalObject)) as ModelImporter);
-                }
-
-                if (GUILayout.Button("Check Avatar"))
-                {
-                    Debug.Log(avatar.scene.name);
-                    Debug.Log(avatar.activeInHierarchy);
-                }
-
-                if (GUILayout.Button("Check Menu"))
-                {
-                    Debug.Log(avatarDescriptor.expressionsMenu);
-                }
-
-                if (GUILayout.Button("Check FX"))
+                if (group.visible)
                 {
 
-                    Debug.Log("Length: " + avatarDescriptor.baseAnimationLayers.Length);
-                    Debug.Log(avatarDescriptor);
+                    if (GUILayout.Button("Check Model"))
+                    {
+                        UnityEngine.Object originalObject = PrefabUtility.GetCorrespondingObjectFromOriginalSource(avatar);
+                        Debug.Log(AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(originalObject)) as ModelImporter);
+                    }
 
-                    Debug.Log("Controller: " + avatarDescriptor.baseAnimationLayers[4].animatorController);
+                    if (GUILayout.Button("Check Avatar"))
+                    {
+                        Debug.Log(avatar.scene.name);
+                        Debug.Log(avatar.activeInHierarchy);
+                    }
 
-                    Debug.Log("isEnabled: " + avatarDescriptor.baseAnimationLayers[4].isEnabled);
-                    Debug.Log("isDefault: " + avatarDescriptor.baseAnimationLayers[4].isDefault);
+                    if (GUILayout.Button("Check Menu"))
+                    {
+                        Debug.Log(avatarDescriptor.expressionsMenu);
+                    }
 
+                    if (GUILayout.Button("Check FX"))
+                    {
+
+                        Debug.Log("Length: " + avatarDescriptor.baseAnimationLayers.Length);
+                        Debug.Log(avatarDescriptor);
+
+                        Debug.Log("Controller: " + avatarDescriptor.baseAnimationLayers[4].animatorController);
+
+                        Debug.Log("isEnabled: " + avatarDescriptor.baseAnimationLayers[4].isEnabled);
+                        Debug.Log("isDefault: " + avatarDescriptor.baseAnimationLayers[4].isDefault);
+
+                    }
+
+                    if (GUILayout.Button("Check Parameters"))
+                    {
+                        Debug.Log(avatarDescriptor.expressionParameters);
+                    }
+
+                    if (GUILayout.Button("Check Model"))
+                    {
+                        Debug.Log(model.normalCalculationMode);
+                        Debug.Log(model.importBlendShapeNormals);
+                        Debug.Log(model.importNormals);
+
+                    }
+
+                    if (GUILayout.Button("Check Normals"))
+                    {
+                        string pName = "legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes";
+                        PropertyInfo prop = model.GetType().GetProperty(pName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                        Debug.Log(prop.GetValue(model));
+                    }
+
+                    if (GUILayout.Button("Check Controller"))
+                    {
+                        AnimatorController animator = AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/256fes 1/VRC/New Animator Controller.controller");
+
+                        Debug.Log(animator.hideFlags);
+                        Debug.Log(animator.GetHashCode());
+                    }
                 }
 
-                if (GUILayout.Button("Check Parameters"))
-                {
-                    Debug.Log(avatarDescriptor.expressionParameters);
-                }
-
-                if (GUILayout.Button("Check Model"))
-                {
-                    Debug.Log(model.normalCalculationMode);
-                    Debug.Log(model.importBlendShapeNormals);
-                    Debug.Log(model.importNormals);
-
-                }
-
-                if (GUILayout.Button("Check Normals"))
-                {
-                    string pName = "legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes";
-                    PropertyInfo prop = model.GetType().GetProperty(pName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                    Debug.Log(prop.GetValue(model));
-                }
-
-                if (GUILayout.Button("Check Controller"))
-                {
-                    AnimatorController animator = AssetDatabase.LoadAssetAtPath<AnimatorController>("Assets/256fes 1/VRC/New Animator Controller.controller");
-
-                    Debug.Log(animator.hideFlags);
-                    Debug.Log(animator.GetHashCode());
-                }
             }
 
-
-            EditorGUILayout.EndScrollView();
+            //EditorGUILayout.EndScrollView();
 
             EditorGUILayout.EndFoldoutHeaderGroup();
 
-            // Use a space to separate the fields
-            EditorGUILayout.Space();
 
-            // End the vertical layout group
-            EditorGUILayout.EndVertical();
-
-            // Use a space to separate the preview
             EditorGUILayout.Space(10);
 
+            EditorGUILayout.EndScrollView();
+
+            EditorGUILayout.EndVertical();
 
 
         }

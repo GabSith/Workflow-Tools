@@ -49,8 +49,12 @@ namespace GabSith.WFT
 
         bool useExistingAnimation = false;
 
-        bool fold = false;
-        bool advancedFold = false;
+        AnimBool fold = new AnimBool(false);
+        AnimBool advancedFold = new AnimBool(false);
+
+
+        //bool fold = false;
+        //bool advancedFold = false;
         Vector2 scrollPosExtraObjects;
         Vector2 scrollPosDescriptors;
         Vector2 scrollPosMaterials;
@@ -73,7 +77,6 @@ namespace GabSith.WFT
         {
             EditorWindow w = EditorWindow.GetWindow(typeof(HueShiftEditor), false, "Hue Shift Creator");
             w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image, text = "Hue Shift Creator", tooltip = "♥" };
-
         }
 
 
@@ -93,7 +96,8 @@ namespace GabSith.WFT
             }
 
             suffix = ProjectSettingsManager.GetString(HueShiftFolderSuffixKey);
-
+            fold.valueChanged.AddListener(new UnityAction(Repaint));
+            advancedFold.valueChanged.AddListener(new UnityAction(Repaint));
         }
 
         void OnGUI()
@@ -246,9 +250,10 @@ namespace GabSith.WFT
 
 
             // Crate fold for advanced settings
-            advancedFold = EditorGUILayout.Foldout(advancedFold, "More Settings");
+            advancedFold.target = EditorGUILayout.Foldout(advancedFold.target, "More Settings");
 
-            if (advancedFold) {
+            using (var group = new EditorGUILayout.FadeGroupScope(advancedFold.faded))
+            if (group.visible) {
 
                 icon = EditorGUILayout.ObjectField("Menu Icon", icon, typeof(Texture2D), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as Texture2D;
 
@@ -337,26 +342,27 @@ namespace GabSith.WFT
             EditorGUILayout.Space();
             GUI.enabled = true;
             // Use a fold to separate the extra buttons
-            fold = EditorGUILayout.BeginFoldoutHeaderGroup(fold, "Debug");
-            if (fold)
-            {
-                if (GUILayout.Button("Create Animation Clip"))
+            fold.target = EditorGUILayout.BeginFoldoutHeaderGroup(fold.target, "Debug");
+            using (var group = new EditorGUILayout.FadeGroupScope(fold.faded))
+                if (group.visible)
                 {
-                    CreateAnimations(animationName);
-                }
+                    if (GUILayout.Button("Create Animation Clip"))
+                    {
+                        CreateAnimations(animationName);
+                    }
 
-                if (GUILayout.Button("Create Menu Control"))
-                {
-                    CreateMenu(toggleName, parameterName, menu, icon);
-                }
+                    if (GUILayout.Button("Create Menu Control"))
+                    {
+                        CreateMenu(toggleName, parameterName, menu, icon);
+                    }
 
-                if (GUILayout.Button("Test Path To Object"))
-                {
-                    //Debug.Log(VRC.Core.ExtensionMethods.GetHierarchyPath(gameObject.transform, avatarDescriptor.transform));
+                    if (GUILayout.Button("Test Path To Object"))
+                    {
+                        //Debug.Log(VRC.Core.ExtensionMethods.GetHierarchyPath(gameObject.transform, avatarDescriptor.transform));
 
-                    Debug.Log(GetPathToObject(gameObject.transform));
+                        Debug.Log(GetPathToObject(gameObject.transform));
+                    }
                 }
-            }
             EditorGUILayout.EndFoldoutHeaderGroup();
 
             // Use a space to separate the fields

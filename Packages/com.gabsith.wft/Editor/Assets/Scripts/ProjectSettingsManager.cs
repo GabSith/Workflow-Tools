@@ -11,8 +11,12 @@ namespace GabSith.WFT
     public class ProjectSettingsManager
     {
         private const string SettingsFileName = "WFTProjectSettings.json";
+
         private static Dictionary<string, string> settingsCache;
         private static string resourcesFolderPath;
+
+        public static string defaultPath = "Assets/WF Tools - GabSith/Generated";
+        public static bool useHeader = true;
 
         static ProjectSettingsManager()
         {
@@ -117,6 +121,53 @@ namespace GabSith.WFT
             return defaultValue;
         }
 
+        public static void SetColor(string key, Color value)
+        {
+            string colorString = $"{value.r}-{value.g}-{value.b}-{value.a}";
+            SetString(key, colorString);
+        }
+
+        public static Color GetColor(string key, Color defaultValue)
+        {
+            string colorString = GetString(key, $"{defaultValue.r}-{defaultValue.g}-{defaultValue.b}-{defaultValue.a}");
+
+            string[] components = colorString.Split('-');
+
+            if (components.Length == 4 &&
+                float.TryParse(components[0], out float r) &&
+                float.TryParse(components[1], out float g) &&
+                float.TryParse(components[2], out float b) &&
+                float.TryParse(components[3], out float a))
+            {
+                return new Color(r, g, b, a);
+            }
+            return defaultValue;
+        }
+
+        public static bool EditorGUIBool(string key, string label, bool defaultValue = false)
+        {
+            bool value = GetBool(key, defaultValue);
+            bool newValue = EditorGUILayout.ToggleLeft(label, value);
+            if (newValue != value)
+            {
+                SetBool(key, newValue);
+            }
+            return newValue;
+        }
+
+        public static Color EditorGUIColor(string key, string label, Color defaultValue)
+        {
+            Color value = GetColor(key, defaultValue);
+            Color newValue = EditorGUILayout.ColorField(new GUIContent(label), value, true, true, true);
+            if (newValue != value)
+            {
+                SetColor(key, newValue);
+            }
+            return newValue;
+        }
+
+
+
         public static bool DeleteKey(string key)
         {
             bool removed = settingsCache.Remove(key);
@@ -125,6 +176,23 @@ namespace GabSith.WFT
                 SaveSettings();
             }
             return removed;
+        }
+
+        public static void DeleteAllData()
+        {
+            settingsCache.Clear();
+
+            string fullPath = Path.Combine(resourcesFolderPath, SettingsFileName);
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+                Debug.Log("ProjectSettingsManager: All saved data has been deleted.");
+            }
+            else
+            {
+                Debug.Log("ProjectSettingsManager: No saved data file found to delete.");
+            }
+            AssetDatabase.Refresh();
         }
 
         public static bool HasKey(string key)

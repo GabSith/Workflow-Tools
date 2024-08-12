@@ -108,6 +108,7 @@ namespace GabSith.WFT
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
             CommonActions.GenerateTitle("Menu Control Editor");
 
             if (avatarDescriptor == null)
@@ -119,7 +120,6 @@ namespace GabSith.WFT
                 avatarAvailable = true;
             }
 
-            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
 
 
             if (AssetDatabase.GetAssetPath(menu) != null)
@@ -267,26 +267,9 @@ namespace GabSith.WFT
                         control.subMenu = EditorGUILayout.ObjectField("Sub Menu", control.subMenu, typeof(VRCExpressionsMenu), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as VRCExpressionsMenu;
 
                         // OPTION TO CREATE SUBMENU
-
-                        if (createMode)
+                        if (CommonActions.ToggleButton("Create", createMode, GUILayout.Width(100)))
                         {
-                            Color def = GUI.backgroundColor;
-                            GUI.backgroundColor = new Color { r = 0.8f, g = 0.6f, b = 0.6f, a = 1 };
-
-                            if (GUILayout.Button("Create", GUILayout.Width(100)))
-                            {
-                                createMode = !createMode;
-                            }
-
-                            GUI.backgroundColor = def;
-
-                        }
-                        else
-                        {
-                            if (GUILayout.Button("Create", GUILayout.Width(100)))
-                            {
-                                createMode = !createMode;
-                            }
+                            createMode = !createMode;
                         }
 
 
@@ -300,32 +283,19 @@ namespace GabSith.WFT
                         {
                             EditorGUILayout.Space();
 
-
-
                             newMenuName = EditorGUILayout.TextField("Menu Name: ", newMenuName);
 
 
-
-                            // Use a button to select the folder path 
-                            /*if (GUILayout.Button("Select Folder"))
-                            {
-                                folderPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets/", "");
-
-                                if (folderPath == null || folderPath == "")
-                                {
-                                    folderPath = defaultPath;
-                                }
-
-                                int index = folderPath.IndexOf("Assets/");
-
-                                folderPath = folderPath.Substring(index);
-                            }*/
                             CommonActions.SelectFolder(MenuControlUseGlobalKey, MenuControlFolderKey, MenuControlFolderSuffixKey, ref suffix);
 
-                            if (GUILayout.Button("Create", GUILayout.Height(25)))
+                            if (string.IsNullOrEmpty(newMenuName))
+                                GUI.enabled = false;
+
+                            if (GUILayout.Button("Create", GUILayout.Height(30f)))
                             {
                                 control.subMenu = CreateExpressionMenu(newMenuName);
                             }
+                            GUI.enabled = true;
 
                         }
 
@@ -967,14 +937,10 @@ namespace GabSith.WFT
         void NewParameter(int boolsIndex, ref string subParameter)
         {
 
-            if (newParameterBools[boolsIndex])
-                GUI.color = new Color(0.5f, 0.8f, 0.5f);
-
-            if (GUILayout.Button("New", GUILayout.Width(50)))
+            if (CommonActions.ToggleButton("New", newParameterBools[boolsIndex], GUILayout.Width(50)))
             {
                 newParameterBools[boolsIndex] = !newParameterBools[boolsIndex];
             }
-            GUI.color = defaultColor;
 
             EditorGUILayout.EndHorizontal();
 

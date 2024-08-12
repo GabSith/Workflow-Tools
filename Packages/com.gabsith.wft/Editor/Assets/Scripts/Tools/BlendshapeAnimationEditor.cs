@@ -2,12 +2,13 @@
 
 using UnityEditor;
 using UnityEngine;
-
+using System;
 
 using System.IO;
 using System.Collections.Generic;
 
-
+using UnityEditor.AnimatedValues;
+using UnityEngine.Events;
 
 
 namespace GabSith.WFT
@@ -19,14 +20,20 @@ namespace GabSith.WFT
         bool useExistingAnimation = false;
         AnimationClip existingAnimation;
 
-        //private string defaultPath = "Assets/WF Tools - GabSith/Generated";
-        //private string folderPath = "Assets/WF Tools - GabSith/Generated";
+        //bool secondKeyframeFold = false;
+        AnimBool secondKeyframeFold = new AnimBool(false);
+
+        int selectedFrame = 0;
+        int keyframePosition = 1;
+        bool useSingleFrame = false;
+        bool equalKeyframes = true;
+        float[] secondBlendShapeWeights;
+        private List<float[]> secondBlendShapeWeightsList = new List<float[]> { };
 
         private const string BlendshapeAnimFolderKey = "BlendshapeAnimFolderKey";
         private const string BlendshapeAnimUseGlobalKey = "BlendshapeAnimUseGlobalKey";
         private const string BlendshapeAnimFolderSuffixKey = "BlendshapeAnimFolderSuffixKey";
         string suffix;
-
 
         GameObject parent;
         SkinnedMeshRenderer skinnedMeshRenderer;
@@ -38,16 +45,19 @@ namespace GabSith.WFT
 
         Vector2 scrollPosExtraBlendshapes;
 
-
         private List<SkinnedMeshRenderer> extraSkinnedMeshRenderers = new List<SkinnedMeshRenderer> { };
         private List<string[]> blendShapeNamesList = new List<string[]> { };
         private List<float[]> blendShapeWeightsList = new List<float[]> { };
         private List<bool[]> isBlendShapeActiveList = new List<bool[]> { };
         private List<Vector2> scrollPosList = new List<Vector2> { };
 
+        string find = "";
+        private List<string> findList = new List<string> { };
+
+
+        Vector2 scrollPosBlends;
 
         Vector2 scrollPos;
-
 
         [MenuItem("GabSith/Niche/Blendshape Animation Creator", false, 900)]
 
@@ -62,14 +72,17 @@ namespace GabSith.WFT
         private void OnEnable()
         {
             suffix = ProjectSettingsManager.GetString(BlendshapeAnimFolderSuffixKey);
+            secondKeyframeFold.valueChanged.AddListener(new UnityAction(Repaint));
         }
 
         void OnGUI()
         {
+            GUI.SetNextControlName("NotText");
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-            CommonActions.GenerateTitle("Blendshape Animation Creator");
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
 
+            CommonActions.GenerateTitle("Blendshape Animation Creator");
 
             parent = EditorGUILayout.ObjectField("Parent Game Object", parent, typeof(GameObject), true) as GameObject;
 
@@ -83,8 +96,12 @@ namespace GabSith.WFT
                 extraSkinnedMeshRenderers.Add(null);
                 blendShapeNamesList.Add(new string[] { });
                 blendShapeWeightsList.Add(new float[] { });
+                secondBlendShapeWeightsList.Add(new float[] { });
+
                 isBlendShapeActiveList.Add(new bool[] { });
                 scrollPosList.Add(new Vector2 { });
+
+                findList.Add("");
             }
             EditorGUILayout.LabelField("Mesh", GUILayout.MaxWidth(125f));
             skinnedMeshRenderer = (SkinnedMeshRenderer)EditorGUILayout.ObjectField("", skinnedMeshRenderer, typeof(SkinnedMeshRenderer), true, GUILayout.ExpandWidth(true));
@@ -98,109 +115,8 @@ namespace GabSith.WFT
             EditorGUILayout.EndHorizontal();
 
 
-
-
-
-
-            //skinnedMeshRenderer = EditorGUILayout.ObjectField("Mesh", skinnedMeshRenderer, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
-
-            if (skinnedMeshRenderer != null)
-            {
-                EditorGUILayout.Space();
-                EditorGUI.BeginChangeCheck();
-                skinnedMesh = skinnedMeshRenderer.sharedMesh;
-                blendShapeCount = skinnedMesh.blendShapeCount;
-
-                if (EditorGUI.EndChangeCheck() || (blendShapeCount != isBlendShapeActive.Length))
-                {
-                    isBlendShapeActive = new bool[blendShapeCount];
-                }
-
-
-                if (blendShapeNames == null || blendShapeNames.Length != blendShapeCount)
-                {
-                    blendShapeNames = new string[blendShapeCount];
-                    for (int i = 0; i < blendShapeCount; i++)
-                    {
-                        blendShapeNames[i] = skinnedMesh.GetBlendShapeName(i);
-                    }
-                }
-
-                if (blendShapeWeights == null || blendShapeWeights.Length != blendShapeCount)
-                {
-                    blendShapeWeights = new float[blendShapeCount];
-                    for (int i = 0; i < blendShapeCount; i++)
-                    {
-                        blendShapeWeights[i] = skinnedMeshRenderer.GetBlendShapeWeight(i);
-                    }
-                }
-                if (blendShapeNames.Length != 0)
-                {
-                    EditorGUILayout.LabelField("Blend Shapes", EditorStyles.boldLabel);
-
-
-                    //EditorGUI.BeginChangeCheck();
-
-                    scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(false));
-
-                    for (int i = 0; i < blendShapeCount; i++)
-                    {
-                        using (new EditorGUILayout.HorizontalScope())
-                        {
-                            isBlendShapeActive[i] = EditorGUILayout.Toggle(isBlendShapeActive[i], GUILayout.MaxWidth(20f));
-                            EditorGUILayout.LabelField(blendShapeNames[i], GUILayout.MaxWidth(130f));
-                            blendShapeWeights[i] = EditorGUILayout.Slider(blendShapeWeights[i], 0f, 100f);
-                        }
-                    }
-
-
-                    EditorGUILayout.EndScrollView();
-
-                    EditorGUILayout.Space();
-
-                    using (new EditorGUILayout.HorizontalScope())
-                    {
-                        if (GUILayout.Button("Toggle All"))
-                        {
-                            bool isOneOff = false;
-                            for (int i = 0; i < blendShapeCount; i++)
-                            {
-                                if (isBlendShapeActive[i] == false)
-                                {
-                                    isOneOff = true;
-                                    break;
-                                }
-                            }
-                            if (isOneOff)
-                            {
-                                for (int i = 0; i < blendShapeCount; i++)
-                                {
-                                    isBlendShapeActive[i] = true;
-                                }
-                            }
-                            else
-                            {
-                                for (int i = 0; i < blendShapeCount; i++)
-                                {
-                                    isBlendShapeActive[i] = false;
-                                }
-                            }
-                        }
-
-                        if (GUILayout.Button("Reset"))
-                        {
-                            for (int i = 0; i < blendShapeCount; i++)
-                            {
-                                isBlendShapeActive[i] = false;
-                                //skinnedMeshRenderer.SetBlendShapeWeight(i, 0);
-                                //blendShapeWeights[i] = skinnedMeshRenderer.GetBlendShapeWeight(i);
-                                blendShapeWeights[i] = 0;
-                            }
-                        }
-                    }
-
-                }
-            }
+            BlendshapeListUI(ref skinnedMesh, ref skinnedMeshRenderer, ref blendShapeCount,
+                ref isBlendShapeActive, ref blendShapeNames, ref blendShapeWeights, ref secondBlendShapeWeights, ref scrollPosBlends, ref find);
 
 
             // Extra meshes
@@ -219,8 +135,12 @@ namespace GabSith.WFT
                         extraSkinnedMeshRenderers.RemoveAt(j);
                         blendShapeNamesList.RemoveAt(j);
                         blendShapeWeightsList.RemoveAt(j);
+                        secondBlendShapeWeightsList.RemoveAt(j);
                         isBlendShapeActiveList.RemoveAt(j);
                         scrollPosList.RemoveAt(j);
+
+                        findList.RemoveAt(j);
+
                         EditorGUILayout.EndHorizontal();
                         continue;
                     }
@@ -228,133 +148,115 @@ namespace GabSith.WFT
                     extraSkinnedMeshRenderers[j] = (SkinnedMeshRenderer)EditorGUILayout.ObjectField("", extraSkinnedMeshRenderers[j], typeof(SkinnedMeshRenderer), true, GUILayout.ExpandWidth(true));
                     EditorGUILayout.EndHorizontal();
 
-
-
                     if (extraSkinnedMeshRenderers[j] != null)
                     {
+                        if (extraSkinnedMeshRenderers.Count != isBlendShapeActiveList.Count)
+                        {
+                            Debug.Log("Extra meshes discrepancy");
+                            blendShapeNamesList.Add(new string[] { });
+                            blendShapeWeightsList.Add(new float[] { });
+                            secondBlendShapeWeightsList.Add(new float[] { });
+
+                            isBlendShapeActiveList.Add(new bool[] { });
+                            scrollPosList.Add(new Vector2 { });
+
+                            findList.Add(""); 
+                        }
+
                         int num = j;
-
-                        EditorGUILayout.Space();
-                        Mesh skinnedMesh = extraSkinnedMeshRenderers[j].sharedMesh;
+                        Mesh skinnedMesh = extraSkinnedMeshRenderers[num].sharedMesh;
                         int blendShapeCount = skinnedMesh.blendShapeCount;
+                        SkinnedMeshRenderer skinnedMeshRenderer = extraSkinnedMeshRenderers[num];
+                        bool[] isBlendShapeActive = isBlendShapeActiveList[num];
+                        string[] blenshapeNames = blendShapeNamesList[num];
+                        float[] blendShapeWeights = blendShapeWeightsList[num];
+                        float[] secondBlendShapeWeights = secondBlendShapeWeightsList[num];
+                        Vector2 scrollPos = scrollPosList[num];
+                        string find = findList[num];
 
-                        //Debug.Log(isBlendShapeActiveList.Count);
+                        BlendshapeListUI(ref skinnedMesh, ref skinnedMeshRenderer, ref blendShapeCount, ref isBlendShapeActive,
+                            ref blenshapeNames, ref blendShapeWeights, ref secondBlendShapeWeights, ref scrollPos, ref find);
 
-
-                        if ((blendShapeCount != isBlendShapeActiveList[num].Length))
-                        {
-                            isBlendShapeActiveList[num] = new bool[blendShapeCount];
-                        }
-
-
-                        if (blendShapeNamesList[num] == null || blendShapeNamesList[num].Length != blendShapeCount)
-                        {
-                            blendShapeNamesList[num] = new string[blendShapeCount];
-                            for (int i = 0; i < blendShapeCount; i++)
-                            {
-                                blendShapeNamesList[num][i] = skinnedMesh.GetBlendShapeName(i);
-                            }
-                        }
-
-                        if (blendShapeWeightsList[num] == null || blendShapeWeightsList[num].Length != blendShapeCount)
-                        {
-                            blendShapeWeightsList[num] = new float[blendShapeCount];
-                            for (int i = 0; i < blendShapeCount; i++)
-                            {
-                                blendShapeWeightsList[num][i] = extraSkinnedMeshRenderers[j].GetBlendShapeWeight(i);
-                            }
-                        }
-                        if (blendShapeNamesList[num].Length != 0)
-                        {
-                            EditorGUILayout.LabelField("Blend Shapes", EditorStyles.boldLabel);
-
-
-                            //EditorGUI.BeginChangeCheck();
-
-                            scrollPosList[num] = EditorGUILayout.BeginScrollView(scrollPosList[num], GUILayout.ExpandHeight(false));
-
-                            for (int i = 0; i < blendShapeCount; i++)
-                            {
-                                using (new EditorGUILayout.HorizontalScope())
-                                {
-                                    isBlendShapeActiveList[num][i] = EditorGUILayout.Toggle(isBlendShapeActiveList[num][i], GUILayout.MaxWidth(20f));
-                                    EditorGUILayout.LabelField(blendShapeNamesList[num][i], GUILayout.MaxWidth(130f));
-                                    blendShapeWeightsList[num][i] = EditorGUILayout.Slider(blendShapeWeightsList[num][i], 0f, 100f);
-                                }
-                            }
-
-
-                            EditorGUILayout.EndScrollView();
-
-                            EditorGUILayout.Space();
-
-                            using (new EditorGUILayout.HorizontalScope())
-                            {
-                                if (GUILayout.Button("Toggle All"))
-                                {
-                                    bool isOneOff = false;
-                                    for (int i = 0; i < blendShapeCount; i++)
-                                    {
-                                        if (isBlendShapeActiveList[num][i] == false)
-                                        {
-                                            isOneOff = true;
-                                            break;
-                                        }
-                                    }
-                                    if (isOneOff)
-                                    {
-                                        for (int i = 0; i < blendShapeCount; i++)
-                                        {
-                                            isBlendShapeActiveList[num][i] = true;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        for (int i = 0; i < blendShapeCount; i++)
-                                        {
-                                            isBlendShapeActiveList[num][i] = false;
-                                        }
-                                    }
-                                }
-
-                                if (GUILayout.Button("Reset"))
-                                {
-                                    for (int i = 0; i < blendShapeCount; i++)
-                                    {
-                                        isBlendShapeActiveList[num][i] = false;
-                                        //extraSkinnedMeshRenderers[num].SetBlendShapeWeight(i, 0);
-                                        blendShapeWeightsList[num][i] = extraSkinnedMeshRenderers[num].GetBlendShapeWeight(i);
-                                    }
-                                }
-                            }
-                        }
+                        extraSkinnedMeshRenderers[j].sharedMesh = skinnedMesh;
+                        extraSkinnedMeshRenderers[num] = skinnedMeshRenderer;
+                        isBlendShapeActiveList[num] = isBlendShapeActive;
+                        blendShapeWeightsList[num] = blendShapeWeights;
+                        secondBlendShapeWeightsList[num] = secondBlendShapeWeights;
+                        scrollPosList[num] = scrollPos;
+                        findList[num] = find;
                     }
-
-
-
-
-
                 }
             }
 
             EditorGUILayout.EndScrollView();
 
 
-            EditorGUILayout.Space(20);
+            // Second Frame
+            EditorGUILayout.Space(15);
+
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                //secondKeyframeFold.target = EditorGUILayout.BeginFoldoutHeaderGroup(secondKeyframeFold.target, "Second Keyframe");
+
+                secondKeyframeFold.target = EditorGUILayout.Foldout(secondKeyframeFold.target, "Second Keyframe");
+                using var group = new EditorGUILayout.FadeGroupScope(secondKeyframeFold.faded);
+                if (group.visible)
+                {
+                    EditorGUILayout.Space();
+                    if (useSingleFrame || equalKeyframes)
+                    {
+                        selectedFrame = 0;
+                        GUI.enabled = false;
+                    }
+                    EditorGUI.BeginChangeCheck();
+                    selectedFrame = GUILayout.Toolbar(selectedFrame, new string[2] { "First Keyframe", "Second Keyframe" }, GUILayout.Height(25f));
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        GUI.FocusControl("NotText");
+                    }
+                    GUI.enabled = true;
+
+
+                    useSingleFrame = EditorGUILayout.ToggleLeft("Use single keyframe", useSingleFrame);
+                    if (!useSingleFrame)
+                    {
+
+                        equalKeyframes = EditorGUILayout.ToggleLeft("Both keyframes are the same", equalKeyframes);
+
+                        EditorGUILayout.Space(5);
+
+                        keyframePosition = EditorGUILayout.IntField("Second key on frame", keyframePosition);
+                        if (keyframePosition < 1)
+                            keyframePosition = 1;
+
+                        EditorGUILayout.Space();
+
+                        if (!equalKeyframes)
+                        {
+                            if (GUILayout.Button("Copy values from first to second key", GUILayout.Height(25f)))
+                            {
+                                GUI.FocusControl("NotText");
+                                CopyValues();
+                            }
+                        }
+                    }
+                    EditorGUILayout.Space();
+                }
+
+            }
+
+            // Add to existing animation
+            EditorGUILayout.Space(15);
 
             useExistingAnimation = EditorGUILayout.ToggleLeft("Add to existing animation", useExistingAnimation);
             EditorGUILayout.Space();
             if (useExistingAnimation)
             {
                 existingAnimation = EditorGUILayout.ObjectField("Animation", existingAnimation, typeof(AnimationClip), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as AnimationClip;
-
             }
             else
             {
                 animationName = EditorGUILayout.TextField("Animation Name", animationName);
-
-
-
 
                 EditorGUILayout.Space(10);
 
@@ -363,25 +265,19 @@ namespace GabSith.WFT
                 {
                     CommonActions.SelectFolder(BlendshapeAnimUseGlobalKey, BlendshapeAnimFolderKey, BlendshapeAnimFolderSuffixKey, ref suffix);
                 }
-
             }
             EditorGUILayout.Space();
-
 
             if (!RequirementsMet())
                 GUI.enabled = false;
 
-            // Custom style for the Create Toggle button
+
             GUIStyle buttonStyle = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 15, // Increase the font size
+                fontSize = 15,
                 fixedHeight = 35,
-
             };
-            // Use buttons to create the toggle and the animation clip with a custom style
-            buttonStyle.fixedHeight = 35; // Increase the button height
 
-            //if (GUILayout.Button("Create Animation", buttonStyle))
             if (GUILayout.Button(useExistingAnimation ? "Add To Animation" : "Create Animation", buttonStyle))
             {
                 if (useExistingAnimation)
@@ -391,95 +287,16 @@ namespace GabSith.WFT
                     CreateAnimationClip();
             }
 
-            // Use a space to separate the fields
             EditorGUILayout.Space();
 
-            // End the vertical layout group
+            EditorGUILayout.EndScrollView();
+
+
             EditorGUILayout.EndVertical();
-
         }
 
-        void AddToAnimationClip(AnimationClip clip)
-        {
-            AddAnimationCurve(clip, skinnedMeshRenderer, isBlendShapeActive, blendShapeWeights);
-
-            if (extraSkinnedMeshRenderers.Count > 0)
-            {
-                for (int i = 0; i < extraSkinnedMeshRenderers.Count; i++)
-                {
-                    AddAnimationCurve(clip, extraSkinnedMeshRenderers[i], isBlendShapeActiveList[i], blendShapeWeightsList[i]);
-                }
-            }
-
-            //AssetDatabase.LoadAssetAtPath<AnimationClip>(AssetDatabase.GetAssetPath(clip));
-
-            AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(clip));
-            MakeSureItDoesTheThing(clip);
-        }
-
-        void CreateAnimationClip()
-        {
-            AnimationClip clip = new AnimationClip { name = animationName };
-
-            AddAnimationCurve(clip, skinnedMeshRenderer, isBlendShapeActive, blendShapeWeights);
-
-            if (extraSkinnedMeshRenderers.Count > 0)
-            {
-                for (int i = 0; i < extraSkinnedMeshRenderers.Count; i++)
-                {
-                    AddAnimationCurve(clip, extraSkinnedMeshRenderers[i], isBlendShapeActiveList[i], blendShapeWeightsList[i]);
-                }
-            }
-
-            Directory.CreateDirectory(GetFolder());
-            AssetDatabase.CreateAsset(clip, GetFolder() + "/" + clip.name + ".anim");
-
-            EditorGUIUtility.PingObject(clip);
-
-            MakeSureItDoesTheThing(clip);
-        }
-        void AddAnimationCurve(AnimationClip clip, SkinnedMeshRenderer skinnedMeshRenderer, bool[] isBlendShapeActive, float[] blendShapeWeights)
-        {
-            if (skinnedMeshRenderer == null) return;
-            if (string.IsNullOrEmpty(animationName) && !useExistingAnimation) return;
-
-
-            Mesh skinnedMesh = skinnedMeshRenderer.sharedMesh;
-            int blendShapeCount = skinnedMesh.blendShapeCount;
-
-
-
-            for (int i = 0; i < blendShapeCount; i++)
-            {
-                if (isBlendShapeActive[i])
-                {
-                    string blendShapeName = skinnedMesh.GetBlendShapeName(i);
-                    string propertyName = "blendShape." + blendShapeName;
-                    AnimationCurve curve = new AnimationCurve();
-
-                    float time = 0f;
-
-                    Keyframe keyframe = new Keyframe(time, blendShapeWeights[i]);
-                    curve.AddKey(keyframe);
-
-                    clip.SetCurve(GetPathToObject(skinnedMeshRenderer.transform), typeof(SkinnedMeshRenderer), propertyName, curve);
-
-                }
-            }
-        }
-
-        string GetPathToObject(Transform gameObject)
-        {
-            if (parent != null)
-                return (VRC.Core.ExtensionMethods.GetHierarchyPath(gameObject, parent.transform));
-            else
-                return "";
-        }
-
-
-
-
-        void RestOfUI(SkinnedMeshRenderer skinnedMeshRenderer, int num)
+        void BlendshapeListUI(ref Mesh skinnedMesh, ref SkinnedMeshRenderer skinnedMeshRenderer, ref int blendShapeCount, ref bool[] isBlendShapeActive, ref string[] blendShapeNames,
+            ref float[] blendShapeWeights, ref float[] secondBlendShapeWeights, ref Vector2 scrollPos, ref string find)
         {
             if (skinnedMeshRenderer != null)
             {
@@ -506,27 +323,40 @@ namespace GabSith.WFT
                 if (blendShapeWeights == null || blendShapeWeights.Length != blendShapeCount)
                 {
                     blendShapeWeights = new float[blendShapeCount];
+                    secondBlendShapeWeights = new float[blendShapeCount];
+
                     for (int i = 0; i < blendShapeCount; i++)
                     {
                         blendShapeWeights[i] = skinnedMeshRenderer.GetBlendShapeWeight(i);
+                        secondBlendShapeWeights[i] = skinnedMeshRenderer.GetBlendShapeWeight(i);
                     }
                 }
                 if (blendShapeNames.Length != 0)
                 {
-                    EditorGUILayout.LabelField("Blend Shapes", EditorStyles.boldLabel);
-
-
-                    //EditorGUI.BeginChangeCheck();
-
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.LabelField("Blend Shapes", EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField(EditorGUIUtility.IconContent("d_Search Icon"), GUILayout.Width(15f));
+                        find = EditorGUILayout.TextField(find, GUILayout.MinWidth(25));
+                    }
                     scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(false));
 
                     for (int i = 0; i < blendShapeCount; i++)
                     {
-                        using (new EditorGUILayout.HorizontalScope())
+                        if (Search(blendShapeNames[i], find))
                         {
-                            isBlendShapeActive[i] = EditorGUILayout.Toggle(isBlendShapeActive[i], GUILayout.MaxWidth(20f));
-                            EditorGUILayout.LabelField(blendShapeNames[i], GUILayout.MaxWidth(130f));
-                            blendShapeWeights[i] = EditorGUILayout.Slider(blendShapeWeights[i], 0f, 100f);
+                            using (new EditorGUILayout.HorizontalScope())
+                            {
+                                isBlendShapeActive[i] = EditorGUILayout.Toggle(isBlendShapeActive[i], GUILayout.MaxWidth(20f));
+                                EditorGUILayout.LabelField(blendShapeNames[i], GUILayout.MaxWidth(130f));
+
+                                if (selectedFrame == 0 || equalKeyframes)
+                                    blendShapeWeights[i] = EditorGUILayout.Slider(blendShapeWeights[i], 0f, 100f);
+                                else
+                                {
+                                    secondBlendShapeWeights[i] = EditorGUILayout.Slider(secondBlendShapeWeights[i], 0f, 100f);
+                                }
+                            }
                         }
                     }
 
@@ -564,20 +394,170 @@ namespace GabSith.WFT
                             }
                         }
 
+                        if (GUILayout.Button("Set all to 100"))
+                        {
+                            if (selectedFrame == 0 || equalKeyframes)
+                            {
+                                for (int i = 0; i < blendShapeCount; i++)
+                                {
+                                    blendShapeWeights[i] = 100;
+                                }
+                            }
+                            else
+                            {
+                                for (int i = 0; i < blendShapeCount; i++)
+                                {
+                                    secondBlendShapeWeights[i] = 100;
+                                }
+                            }
+                        }
+
                         if (GUILayout.Button("Reset"))
                         {
-                            for (int i = 0; i < blendShapeCount; i++)
+                            if (selectedFrame == 0 || equalKeyframes)
                             {
-                                isBlendShapeActive[i] = false;
-                                //skinnedMeshRenderer.SetBlendShapeWeight(i, 0);
-                                blendShapeWeights[i] = skinnedMeshRenderer.GetBlendShapeWeight(i);
+                                for (int i = 0; i < blendShapeCount; i++)
+                                {
+                                    isBlendShapeActive[i] = false;
+                                    blendShapeWeights[i] = 0;
+                                }
+                            }
+                            else
+                            {
+                                for (int i = 0; i < blendShapeCount; i++)
+                                {
+                                    isBlendShapeActive[i] = false;
+                                    secondBlendShapeWeights[i] = 0;
+                                }
                             }
                         }
                     }
-
                 }
             }
 
+        }
+
+        void AddToAnimationClip(AnimationClip clip)
+        {
+            AddAnimationCurve(clip, skinnedMeshRenderer, isBlendShapeActive, blendShapeWeights, secondBlendShapeWeights);
+
+            if (extraSkinnedMeshRenderers.Count > 0)
+            {
+                for (int i = 0; i < extraSkinnedMeshRenderers.Count; i++)
+                {
+                    AddAnimationCurve(clip, extraSkinnedMeshRenderers[i], isBlendShapeActiveList[i], blendShapeWeightsList[i], secondBlendShapeWeightsList[i]);
+                }
+            }
+
+            AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(clip));
+            MakeSureItDoesTheThing(clip);
+        }
+
+        void CreateAnimationClip()
+        {
+            AnimationClip clip = new AnimationClip { name = animationName };
+
+            AddAnimationCurve(clip, skinnedMeshRenderer, isBlendShapeActive, blendShapeWeights, secondBlendShapeWeights);
+
+            if (extraSkinnedMeshRenderers.Count > 0)
+            {
+                for (int i = 0; i < extraSkinnedMeshRenderers.Count; i++)
+                {
+                    AddAnimationCurve(clip, extraSkinnedMeshRenderers[i], isBlendShapeActiveList[i], blendShapeWeightsList[i], secondBlendShapeWeightsList[i]);
+                }
+            }
+
+            Directory.CreateDirectory(GetFolder());
+            AssetDatabase.CreateAsset(clip, GetFolder() + "/" + clip.name + ".anim");
+
+            EditorGUIUtility.PingObject(clip);
+
+            MakeSureItDoesTheThing(clip);
+        }
+        void AddAnimationCurve(AnimationClip clip, SkinnedMeshRenderer skinnedMeshRenderer, bool[] isBlendShapeActive, float[] blendShapeWeights, float[] secondBlendShapeWeights)
+        {
+            if (skinnedMeshRenderer == null) return;
+            if (string.IsNullOrEmpty(animationName) && !useExistingAnimation) return;
+
+            Mesh skinnedMesh = skinnedMeshRenderer.sharedMesh;
+            int blendShapeCount = skinnedMesh.blendShapeCount;
+
+
+            for (int i = 0; i < blendShapeCount; i++)
+            {
+                if (isBlendShapeActive[i])
+                {
+                    string blendShapeName = skinnedMesh.GetBlendShapeName(i);
+                    string propertyName = "blendShape." + blendShapeName;
+                    AnimationCurve curve = new AnimationCurve();
+
+                    float time = 0f;
+                    float timeSF = keyframePosition / 60f;
+
+                    Keyframe keyframe = new Keyframe(time, blendShapeWeights[i]);
+                    curve.AddKey(keyframe);
+
+                    // Second Keyframe
+                    if (!useSingleFrame)
+                    {
+                        if (equalKeyframes)
+                        {
+                            Keyframe secondKeyframe = new Keyframe(timeSF, blendShapeWeights[i]);
+                            curve.AddKey(secondKeyframe);
+                        }
+                        else
+                        {
+                            Keyframe secondKeyframe = new Keyframe(timeSF, secondBlendShapeWeights[i]);
+                            curve.AddKey(secondKeyframe);
+                        }
+                    }
+
+                    clip.SetCurve(GetPathToObject(skinnedMeshRenderer.transform), typeof(SkinnedMeshRenderer), propertyName, curve);
+                }
+            }
+        }
+
+        string GetPathToObject(Transform gameObject)
+        {
+            if (parent != null)
+                return (VRC.Core.ExtensionMethods.GetHierarchyPath(gameObject, parent.transform));
+            else
+                return "";
+        }
+
+        bool Search(string name, string find)
+        {
+            if (!string.IsNullOrEmpty(find) && find != " " && !(name.IndexOf(find, StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                return false;
+            }
+            return true;
+
+        }
+
+        void CopyValues()
+        {
+            for (int i = 0; i < blendShapeWeights.Length; i++)
+            {
+                secondBlendShapeWeights[i] = blendShapeWeights[i]; 
+            }
+
+            // Extra Meshes
+
+            if (extraSkinnedMeshRenderers != null && extraSkinnedMeshRenderers.Count > 0)
+            {
+                for (int j = 0; j < extraSkinnedMeshRenderers.Count; j++)
+                {
+                    if (extraSkinnedMeshRenderers[j] != null)
+                    {
+                        for (int i = 0; i < blendShapeWeightsList[j].Length; i++)
+                        {
+                            secondBlendShapeWeightsList[j][i] = blendShapeWeightsList[j][i];
+                        }
+
+                    }
+                }
+            }
         }
 
         bool RequirementsMet()

@@ -12,6 +12,15 @@ namespace GabSith.WFT
 {
     public class CommonActions
     {
+        //public static Color selectionColor = new Color(1.3f, 0.8f, 0.8f);
+        public static Color selectionColor = new Color(0.9f, 1.15f, 1.45f);
+        static string globalFolderKey = "GlobalFolderKey";
+        private const string DefaultFolderKey = "DefaultFolderKey";
+        private const string SettingsUseHeaderKey = "SettingsUseHeaderKey";
+
+        //public static Color headerColor = new Color(0.95f, 0.9f, 0.9f, 1f);
+        private const string HeaderColorKey = "HeaderColorKey";
+        static Color defaultHeaderColor = new Color(0.95f, 0.9f, 0.9f, 1f);
 
         /*
         private static bool wasPlaying = false;
@@ -31,29 +40,65 @@ namespace GabSith.WFT
 
         public static void GenerateTitle(string name)
         {
-            Color tempColor = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(0.95f, 0.9f, 0.9f, 1f);
-            EditorGUILayout.BeginVertical(GUI.skin.window, GUILayout.MaxHeight(25));
-            GUI.backgroundColor = tempColor;
-
-
-            EditorGUILayout.LabelField(name, new GUIStyle(EditorStyles.boldLabel)
+            if (ProjectSettingsManager.GetBool(SettingsUseHeaderKey, true))
             {
-                alignment = TextAnchor.LowerCenter,
-                fontSize = 18,
-                fixedHeight = 17
-            });
-            EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel)
+                Color defaultColor = GUI.backgroundColor;
+                GUI.backgroundColor = ProjectSettingsManager.GetColor(HeaderColorKey, defaultHeaderColor);
+                
+                EditorGUILayout.BeginVertical(GUI.skin.window, GUILayout.MaxHeight(25));
+                GUI.backgroundColor = defaultColor;
+
+
+                EditorGUILayout.LabelField(name, new GUIStyle(EditorStyles.boldLabel)
+                {
+                    alignment = TextAnchor.LowerCenter,
+                    fontSize = 18,
+                    fixedHeight = 17
+                });
+                EditorGUILayout.LabelField("by GabSith", new GUIStyle(EditorStyles.miniLabel)
+                {
+                    alignment = TextAnchor.LowerCenter,
+                    fixedHeight = 10
+                });
+
+                EditorGUILayout.Space(5);
+
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(15);
+                GUI.backgroundColor = defaultColor;
+            }
+            else
             {
-                alignment = TextAnchor.LowerCenter,
-                fixedHeight = 10
-            });
-
-            EditorGUILayout.Space(5);
-
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.Space(15);
+                EditorGUILayout.Space(10);
+            }
         }
+
+        public static bool ToggleButton(string buttonText, bool toggleValue, params GUILayoutOption[] options)
+        {
+            Color defaultColor = GUI.backgroundColor;
+            if (toggleValue)
+                GUI.backgroundColor = ProjectSettingsManager.GetColor("ButtonsColorKey", CommonActions.selectionColor);
+            if (GUILayout.Button(buttonText, options))
+            {
+                return true;
+            }
+            GUI.backgroundColor = defaultColor;
+            return false;
+        }
+
+        public static bool ToggleButton(GUIContent gUIContent, bool toggleValue, params GUILayoutOption[] options)
+        {
+            Color defaultColor = GUI.backgroundColor;
+            if (toggleValue)
+                GUI.backgroundColor = ProjectSettingsManager.GetColor("ButtonsColorKey", CommonActions.selectionColor);
+            if (GUILayout.Button(gUIContent, options))
+            {
+                return true;
+            }
+            GUI.backgroundColor = defaultColor;
+            return false;
+        }
+
 
         public static bool FindAvatars(ref VRCAvatarDescriptor avatarDescriptor, ref Vector2 scrollPosDescriptors, ref VRCAvatarDescriptor[] avatarDescriptorsFromScene)
         {
@@ -201,18 +246,17 @@ namespace GabSith.WFT
         }
 
 
-
         public static bool SelectFolder(string LocalUseGlobalKey, string LocalFolderKey, string LocalSuffixKey, ref string suffix)
         {
             bool changed = false;
-            //string defaultPath = "Assets/WF Tools - GabSith/Generated";
-            string globalFolderKey = "GlobalFolderKey";
+            float buttonHeight = 22f;
 
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             EditorGUILayout.BeginHorizontal();
 
             // Use a button to select the folder path 
-            if (GUILayout.Button("Select Folder"))
+            if (GUILayout.Button("Select Folder", GUILayout.Height(buttonHeight)))
             {
                 string tempPath = CommonActions.GetFolder(LocalUseGlobalKey, LocalFolderKey);
                 string folderPath = EditorUtility.OpenFolderPanel("Select Folder", "Assets/", "");
@@ -238,9 +282,10 @@ namespace GabSith.WFT
             Color def = GUI.backgroundColor;
             if (ProjectSettingsManager.GetBool(LocalUseGlobalKey, true))
             {
-                GUI.backgroundColor = new Color { r = 0.5f, g = 1f, b = 0.5f, a = 1 };
+                //GUI.backgroundColor = new Color { r = 0.5f, g = 1f, b = 0.5f, a = 1 };
+                GUI.backgroundColor =  ProjectSettingsManager.GetColor("ButtonsColorKey", selectionColor) ;
             }
-            if (GUILayout.Button("Use Global", GUILayout.Width(100f)))
+            if (GUILayout.Button("Use Global", GUILayout.Width(100f), GUILayout.Height(buttonHeight)))
             {
                 //useGlobal = !useGlobal;
                 ProjectSettingsManager.SetBool(LocalUseGlobalKey, !ProjectSettingsManager.GetBool(LocalUseGlobalKey, true));
@@ -271,15 +316,16 @@ namespace GabSith.WFT
             }
             EditorGUILayout.EndHorizontal();
 
+            EditorGUILayout.EndVertical();
+
             return changed;
         }
-
 
         public static bool SelectFolder(string LocalUseGlobalKey, string LocalFolderKey)
         {
             bool changed = false;
             //string defaultPath = "Assets/WF Tools - GabSith/Generated";
-            string globalFolderKey = "GlobalFolderKey";
+            //string globalFolderKey = "GlobalFolderKey";
 
 
             EditorGUILayout.BeginHorizontal();
@@ -336,12 +382,10 @@ namespace GabSith.WFT
             return changed;
         }
 
-
-
         public static string GetFolder(string LocalUseGlobalKey, string localFolderKey)
         {
-            string defaultPath = "Assets/WF Tools - GabSith/Generated";
-            string globalFolderKey = "GlobalFolderKey";
+            string defaultPath = ProjectSettingsManager.GetString(DefaultFolderKey, ProjectSettingsManager.defaultPath);
+            //string globalFolderKey = "GlobalFolderKey";
 
             if (ProjectSettingsManager.GetBool(LocalUseGlobalKey, true))
             {

@@ -50,8 +50,11 @@ namespace GabSith.WFT
         bool useExistingAnimation = false;
         bool slowTrasition = false;
 
-        bool fold = false;
-        bool advancedFold = false;
+        AnimBool fold = new AnimBool(false);
+        AnimBool advancedFold = new AnimBool(false);
+
+        //bool fold = false;
+        //bool advancedFold = false;
         Vector2 scrollPosExtraObjects;
         Vector2 scrollPosDescriptors;
         Vector2 scrollPos;
@@ -85,7 +88,6 @@ namespace GabSith.WFT
 
         private void OnEnable()
         {
-
             if (avatarDescriptor == null)
             {
                 CommonActions.RefreshDescriptors(ref avatarDescriptorsFromScene);
@@ -99,6 +101,8 @@ namespace GabSith.WFT
             LoadProxyClip();
 
             suffix = ProjectSettingsManager.GetString(ToggleCreatorFolderSuffixKey);
+            fold.valueChanged.AddListener(new UnityAction(Repaint));
+            advancedFold.valueChanged.AddListener(new UnityAction(Repaint));
 
         }
 
@@ -114,10 +118,12 @@ namespace GabSith.WFT
         void OnGUI()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
+
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
 
             // Title
             CommonActions.GenerateTitle("Toggle Creator");
+
 
             // Avatar Selection
             CommonActions.FindAvatars(ref avatarDescriptor, ref scrollPosDescriptors, ref avatarDescriptorsFromScene);
@@ -135,7 +141,6 @@ namespace GabSith.WFT
 
             scrollPosExtraObjects = EditorGUILayout.BeginScrollView(scrollPosExtraObjects, GUIStyle.none, GUI.skin.verticalScrollbar,
                 GUILayout.ExpandHeight(false));
-            //scrollPosExtraObjects = EditorGUILayout.BeginScrollView(scrollPosExtraObjects, GUILayout.ExpandHeight(false), GUILayout.);
 
 
             EditorGUILayout.BeginHorizontal();
@@ -196,9 +201,7 @@ namespace GabSith.WFT
             }
             EditorGUILayout.EndScrollView();
 
-
             GUI.enabled = true;
-
 
             menu = (VRCExpressionsMenu)EditorGUILayout.ObjectField("Menu", menu, typeof(VRCExpressionsMenu), true);
 
@@ -212,139 +215,123 @@ namespace GabSith.WFT
                     menu = avatarDescriptor.expressionsMenu;
             }
 
-
-            // Use a space to separate the fields
             EditorGUILayout.Space();
 
-            // Use a text field to enter the toggle name
             EditorGUI.BeginChangeCheck();
             toggleName = EditorGUILayout.TextField("Toggle Name", toggleName);
             if (EditorGUI.EndChangeCheck())
             {
                 CheckRepeatedLayer(toggleName);
             }
-            // Use a space to separate the fields
             EditorGUILayout.Space();
 
+            /*
             // Use toggle fields to set the saved and default states with a custom style
             GUIStyle toggleStyle = new GUIStyle(EditorStyles.toggle)
             {
-                fontSize = 15 // Increase the font size
-            };
-            saved = EditorGUILayout.Toggle("Saved", saved, toggleStyle);
-            defaultState = EditorGUILayout.Toggle("Default", defaultState, toggleStyle);
+                fontSize = 15
+            };*/
+            saved = EditorGUILayout.Toggle("Saved", saved);
+            defaultState = EditorGUILayout.Toggle("Default", defaultState);
 
-            // Use a conditional statement to assign the default state float
             defaultStateFloat = defaultState ? 1f : 0f;
 
-
-            // Use a space to separate the fields
             EditorGUILayout.Space();
 
 
-            // Crate fold for advanced settings
-            advancedFold = EditorGUILayout.Foldout(advancedFold, "More Settings");
-
-            if (advancedFold) {
-
-                // Change proxy
-                EditorGUI.BeginChangeCheck();
-                proxy = EditorGUILayout.ObjectField("Proxy Animation", proxy, typeof(AnimationClip), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as AnimationClip;
-                if (EditorGUI.EndChangeCheck())
+            // Advanced settings
+            
+            advancedFold.target = EditorGUILayout.Foldout(advancedFold.target, "More Settings");
+            using (var group = new EditorGUILayout.FadeGroupScope(advancedFold.faded))
+            {
+                if (group.visible)
                 {
-                    SaveProxyClip();
-                }
-                if (proxy == null)
-                {
-                    EditorGUILayout.HelpBox("A new proxy animation will be created", MessageType.Info);
-                }
-
-                // Use an image field to select a menu icon
-                //icon = (Texture2D)EditorGUILayout.ObjectField("Menu Icon", icon, typeof(Texture2D), true);
-                icon = EditorGUILayout.ObjectField("Menu Icon", icon, typeof(Texture2D), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as Texture2D;
-
-
-                // Use a toggle field to set whether to use an existing animation
-                useExistingAnimation = EditorGUILayout.Toggle("Use Existing Animation", useExistingAnimation, toggleStyle);
-
-                if (useExistingAnimation)
-                {
-                    existingAnimation = (AnimationClip)EditorGUILayout.ObjectField("Existing Animation Clip", existingAnimation, typeof(AnimationClip), true);
-                    EditorGUILayout.Space();
-                }
-
-
-
-                // Use a toggle for slow transition
-                slowTrasition = EditorGUILayout.Toggle("Slow Trasition", slowTrasition, toggleStyle);
-
-                if (slowTrasition)
-                {
-                    using (new EditorGUILayout.HorizontalScope())
+                    // Change proxy
+                    EditorGUI.BeginChangeCheck();
+                    proxy = EditorGUILayout.ObjectField("Proxy Animation", proxy, typeof(AnimationClip), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as AnimationClip;
+                    if (EditorGUI.EndChangeCheck())
                     {
-                        transitionDuration = EditorGUILayout.Slider("Transition Duration", transitionDuration, 0f, 5f);
-                        if (GUILayout.Button("Reset", GUILayout.Width(50f)))
+                        SaveProxyClip();
+                    }
+                    if (proxy == null)
+                    {
+                        EditorGUILayout.HelpBox("A new proxy animation will be created", MessageType.Info);
+                    }
+
+                    icon = EditorGUILayout.ObjectField("Menu Icon", icon, typeof(Texture2D), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as Texture2D;
+
+                    useExistingAnimation = EditorGUILayout.Toggle("Use Existing Animation", useExistingAnimation);
+
+                    if (useExistingAnimation)
+                    {
+                        existingAnimation = (AnimationClip)EditorGUILayout.ObjectField("Existing Animation Clip", existingAnimation, typeof(AnimationClip), true);
+                        EditorGUILayout.Space();
+                    }
+
+                    slowTrasition = EditorGUILayout.Toggle("Slow Trasition", slowTrasition);
+
+                    if (slowTrasition)
+                    {
+                        using (new EditorGUILayout.HorizontalScope())
                         {
-                            transitionDuration = 0.1f;
+                            transitionDuration = EditorGUILayout.Slider("Transition Duration", transitionDuration, 0f, 5f);
+                            if (GUILayout.Button("Reset", GUILayout.Width(50f)))
+                            {
+                                transitionDuration = 0.1f;
+                            }
                         }
                     }
 
-                }
-
-                useWriteDefaults = EditorGUILayout.Toggle("Use Write Defaults", useWriteDefaults, toggleStyle);
+                    useWriteDefaults = EditorGUILayout.Toggle("Use Write Defaults", useWriteDefaults);
 
 
-                EditorGUILayout.Space();
+                    EditorGUILayout.Space();
 
-                // Use a text field for the animation name
-                EditorGUI.BeginChangeCheck();
-                if (useExistingAnimation)
-                    GUI.enabled = false;
-                animationName = EditorGUILayout.TextField("Animation Name", animationName);
-                GUI.enabled = true;
-                if ((animationName == null || animationName == "") && gameObject != null && avatarDescriptor != null) {
-                    animationName = GetPathToObject(gameObject.transform).Replace("/", " ");
-                }
-                if (existingAnimation != null && useExistingAnimation)
-                {
-                    animationName = existingAnimation.name;
-                }
-                if (EditorGUI.EndChangeCheck())
-                {
-                    CheckRepeatedAnimation();
-                }
+                    EditorGUI.BeginChangeCheck();
+                    if (useExistingAnimation)
+                        GUI.enabled = false;
+                    animationName = EditorGUILayout.TextField("Animation Name", animationName);
+                    GUI.enabled = true;
+                    if ((animationName == null || animationName == "") && gameObject != null && avatarDescriptor != null)
+                    {
+                        animationName = GetPathToObject(gameObject.transform).Replace("/", " ");
+                    }
+                    if (existingAnimation != null && useExistingAnimation)
+                    {
+                        animationName = existingAnimation.name;
+                    }
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        CheckRepeatedAnimation();
+                    }
 
+                    EditorGUI.BeginChangeCheck();
+                    parameterName = EditorGUILayout.TextField("Parameter Name", parameterName);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        CheckRepeatedParameter(parameterName);
+                    }
 
-
-
-                // Use a text field for the parameter name
-                EditorGUI.BeginChangeCheck();
-                parameterName = EditorGUILayout.TextField("Parameter Name", parameterName);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    CheckRepeatedParameter(parameterName);
-                }
-
-                if (string.IsNullOrEmpty(parameterName)) {
-                    parameterName = toggleName;
+                    if (string.IsNullOrEmpty(parameterName))
+                    {
+                        parameterName = toggleName;
+                    }
                 }
             }
-            else
+            /*else
             {
                 if (gameObject != null && avatarDescriptor != null)
                     animationName = GetPathToObject(gameObject.transform).Replace("/", " ");
                 parameterName = toggleName;
                 CheckRepeatedParameter(parameterName);
                 CheckRepeatedAnimation();
-            }
+            }*/
 
-            // Use a space to separate the fields
             EditorGUILayout.Space();
 
 
 
             // Select Folder
-
             if (!useExistingAnimation)
             {
                 if (CommonActions.SelectFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey, ToggleCreatorFolderSuffixKey, ref suffix))
@@ -377,44 +364,44 @@ namespace GabSith.WFT
 
 
             // Use a fold to separate the extra buttons
-            fold = EditorGUILayout.BeginFoldoutHeaderGroup(fold, "Extras");
-            if (fold)
-            {
-                if (string.IsNullOrEmpty(animationName))
-                    GUI.enabled = false;
-                if (GUILayout.Button("Create Animation Clip"))
+            fold.target = EditorGUILayout.BeginFoldoutHeaderGroup(fold.target, "Debug");
+            using (var group1 = new EditorGUILayout.FadeGroupScope(fold.faded))
+                if (group1.visible)
                 {
-                    CreateAnimations(animationName);
-                }
-                GUI.enabled = true;
+                    if (string.IsNullOrEmpty(animationName))
+                        GUI.enabled = false;
+                    if (GUILayout.Button("Create Animation Clip"))
+                    {
+                        CreateAnimations(animationName);
+                    }
+                    GUI.enabled = true;
 
-                if (string.IsNullOrEmpty(parameterName) || parameters == null)
-                    GUI.enabled = false;
-                if (GUILayout.Button("Add Parameters"))
-                {
-                    CreateExpressionParameter(parameterName, saved, defaultStateFloat, parameters);
-                    CreateControllerParameters(parameterName, defaultState);
-                }
-                GUI.enabled = true;
+                    if (string.IsNullOrEmpty(parameterName) || parameters == null)
+                        GUI.enabled = false;
+                    if (GUILayout.Button("Add Parameters"))
+                    {
+                        CreateExpressionParameter(parameterName, saved, defaultStateFloat, parameters);
+                        CreateControllerParameters(parameterName, defaultState);
+                    }
+                    GUI.enabled = true;
 
-                if (string.IsNullOrEmpty(toggleName) || string.IsNullOrEmpty(parameterName) || menu == null)
-                    GUI.enabled = false;
-                if (GUILayout.Button("Create Menu Control"))
-                {
-                    CreateMenu(toggleName, parameterName, menu, icon);
-                }
-                GUI.enabled = true;
+                    if (string.IsNullOrEmpty(toggleName) || string.IsNullOrEmpty(parameterName) || menu == null)
+                        GUI.enabled = false;
+                    if (GUILayout.Button("Create Menu Control"))
+                    {
+                        CreateMenu(toggleName, parameterName, menu, icon);
+                    }
+                    GUI.enabled = true;
 
-            }
+                }
             EditorGUILayout.EndFoldoutHeaderGroup();
-
-            EditorGUILayout.Space();
-
-            EditorGUILayout.EndVertical();
+            
+            EditorGUILayout.Space(10);
 
             EditorGUILayout.EndScrollView();
 
-            EditorGUILayout.Space(10);
+            EditorGUILayout.EndVertical();
+
 
         }
 
@@ -464,7 +451,7 @@ namespace GabSith.WFT
 
                 // LOGIC
 
-            CreateLogic(name, clip);
+            CreateLogic(parameterName, clip);
 
             MakeSureItDoesTheThing(FXLayer);
             
@@ -568,11 +555,7 @@ namespace GabSith.WFT
 
             for (int i = 0; i < theAnimations.Count; i++)
             {
-                if (useWriteDefaults)
-                    theAnimations[i].writeDefaultValues = true;
-                else
-                    theAnimations[i].writeDefaultValues = false;
-
+                theAnimations[i].writeDefaultValues = useWriteDefaults;
                 theAnimations[i].motion = proxy;
             }
 
@@ -827,7 +810,6 @@ namespace GabSith.WFT
             }
             else
             {
-                //EditorPrefs.DeleteKey(ProxyClipGuidKey);
                 ProjectSettingsManager.DeleteKey(ProxyClipGuidKey);
             }
         }
