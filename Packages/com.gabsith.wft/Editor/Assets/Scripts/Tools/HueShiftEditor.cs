@@ -618,7 +618,7 @@ namespace GabSith.WFT
 
         string GetFolder()
         {
-            return CommonActions.GetFolder(HueShiftUseGlobalKey, HueShiftFolderKey) + "/" + suffix;
+            return CommonActions.GetFolder(HueShiftUseGlobalKey, HueShiftFolderKey, HueShiftFolderSuffixKey);
         }
 
 

@@ -141,7 +141,8 @@ namespace GabSith.WFT
                     // Rich Text
                     GUIStyle rtLabel = new GUIStyle(GUI.skin.label)
                     {
-                        richText = true
+                        richText = true,
+                        wordWrap = true              
                     };
                     GUIStyle rtButton = new GUIStyle(GUI.skin.button)
                     {
@@ -154,7 +155,7 @@ namespace GabSith.WFT
                         using (var h = new EditorGUILayout.HorizontalScope())
                         {
                             GUILayout.Label("Preview: ", GUILayout.Height(30f));
-                            GUILayout.Label(control.name, rtLabel, GUILayout.Height(30f));
+                            GUILayout.Label(CommonActions.CleanRichText(control.name), rtLabel, GUILayout.Height(30f));
                         }
 
                         // Begin Horizontal Layout for Bold and Italic Buttons
@@ -1200,7 +1201,7 @@ namespace GabSith.WFT
 
         string GetFolder()
         {
-            return CommonActions.GetFolder(MenuControlUseGlobalKey, MenuControlFolderKey) + "/" + suffix;
+            return CommonActions.GetFolder(MenuControlUseGlobalKey, MenuControlFolderKey, MenuControlFolderSuffixKey);
         }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)

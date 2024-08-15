@@ -739,7 +739,7 @@ namespace GabSith.WFT
 
         private string GetFolder()
         {
-            return CommonActions.GetFolder(AvatarSetupUseGlobalKey, AvatarSetupFolderKey) + "/" + suffix;
+            return CommonActions.GetFolder(AvatarSetupUseGlobalKey, AvatarSetupFolderKey, AvatarSetupFolderSuffixKey);
         }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)

@@ -599,7 +599,7 @@ namespace GabSith.WFT
 
         string GetFolder()
         {
-            return CommonActions.GetFolder(BlendshapeAnimUseGlobalKey, BlendshapeAnimFolderKey) + "/" + suffix;
+            return CommonActions.GetFolder(BlendshapeAnimUseGlobalKey, BlendshapeAnimFolderKey, BlendshapeAnimFolderSuffixKey);
         }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)

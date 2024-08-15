@@ -462,7 +462,7 @@ namespace GabSith.WFT
 
         private string GetFolder()
         {
-            return CommonActions.GetFolder(ScreenshotUseGlobalKey, ScreenshotFolderKey) + "/" + suffix;
+            return CommonActions.GetFolder(ScreenshotUseGlobalKey, ScreenshotFolderKey, ScreenshotFolderSuffixKey);
         }
     }
 }

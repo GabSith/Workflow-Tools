@@ -1,7 +1,7 @@
 {
   "name": "com.gabsith.wft",
   "displayName": "Workflow Tools",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Some tools for VRChat avatar creation to help you speed up your workflow.",
   "gitDependencies": {},
   "vpmDependencies": {

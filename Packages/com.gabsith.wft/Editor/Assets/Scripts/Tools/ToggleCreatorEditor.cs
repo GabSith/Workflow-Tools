@@ -748,7 +748,7 @@ namespace GabSith.WFT
 
         string GetFolder()
         {
-            return CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey) + "/" + ProjectSettingsManager.GetString(ToggleCreatorFolderSuffixKey);
+            return CommonActions.GetFolder(ToggleCreatorUseGlobalKey, ToggleCreatorFolderKey, ToggleCreatorFolderSuffixKey);
         }
 
 

@@ -330,7 +330,7 @@ namespace GabSith.WFT
 
         string GetFolder()
         {
-            return CommonActions.GetFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey) + "/" + suffix;
+            return CommonActions.GetFolder(MaterialEditorUseGlobalKey, MaterialEditorFolderKey, MaterialEditorFolderSuffixKey);
         }
 
         void MakeSureItDoesTheThing(UnityEngine.Object dirtyBoy = null)

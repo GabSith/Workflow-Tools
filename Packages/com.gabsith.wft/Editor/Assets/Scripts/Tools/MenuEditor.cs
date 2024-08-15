@@ -7,8 +7,11 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 
 using System.Collections.Generic;
 using System;
+using System.Linq;
 
 using System.Text.RegularExpressions;
+using UnityEditor.AnimatedValues;
+using UnityEngine.Events;
 
 
 namespace GabSith.WFT
@@ -31,8 +34,11 @@ namespace GabSith.WFT
 
         Vector2 scrollPosDescriptors;
         Vector2 scrollPosMenu;
+        Vector2 scrollPos;
 
-        //bool refreshedAvatars = false;
+
+        AnimBool preview = new AnimBool(false);
+        bool showPreview = true;
 
 
         VRCExpressionsMenu.Control copiedControl = new VRCExpressionsMenu.Control();
@@ -51,6 +57,10 @@ namespace GabSith.WFT
         Color otherColor = new Color { r = 1f, g = 0.7f, b = 0.7f, a = 1 };
         Color folderColor = new Color { r = 1f, g = 1f, b = 1f, a = 1 };
 
+        GUIStyle menuButtons, menuButtonsIcon, menuButtonsLabel, menuButtonsParam, menuButtonsEmpty;
+
+        VRCExpressionsMenu menuToDraw;
+        bool isFirstMenu = false;
 
         [MenuItem("GabSith/Menu Editor", false, 1)]
 
@@ -83,14 +93,55 @@ namespace GabSith.WFT
             } 
 
             defaultColor = GUI.color;
-            
+
+            preview.valueChanged.AddListener(new UnityAction(Repaint));
+
         }
 
         void OnGUI()
         {
             Event e = Event.current;
 
+            menuButtons = new GUIStyle(EditorStyles.miniButton)
+            {
+                fontSize = 13,
+                fixedHeight = 40,
+                richText = true
+            };
+            menuButtonsIcon = new GUIStyle(EditorStyles.whiteLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                margin = new RectOffset(),
+                fixedHeight = 40,
+            };
+            menuButtonsLabel = new GUIStyle(EditorStyles.whiteLabel)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                wordWrap = true,
+                margin = new RectOffset(),
+                fontSize = 13,
+                fixedHeight = 40,
+                richText = true
+            };
+            menuButtonsParam = new GUIStyle(EditorStyles.whiteLabel)
+            {
+                alignment = TextAnchor.MiddleRight,
+                wordWrap = true,
+                margin = new RectOffset(),
+                fontSize = 10,
+                fixedHeight = 40,
+            };
+
+            menuButtonsEmpty = new GUIStyle(menuButtons)
+            {
+                fontSize = 10,
+                fixedHeight = 40
+            };
+
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
+
 
             // Tittle
             CommonActions.GenerateTitle("Menu Editor");
@@ -170,18 +221,6 @@ namespace GabSith.WFT
             }
 
 
-            GUIStyle menuButtons = new GUIStyle(EditorStyles.miniButton)
-            {
-                fontSize = 13,
-                fixedHeight = 40,
-                richText = true 
-            };
-
-            GUIStyle menuButtonsEmpty = new GUIStyle(menuButtons)
-            {
-                fontSize = 10,
-                fixedHeight = 40
-            };
 
             EditorGUILayout.Space(20);
 
@@ -198,6 +237,7 @@ namespace GabSith.WFT
 
                 int lastIndex = controlList.Count - 1;
                 VRCExpressionsMenu lastMenu = controlList[lastIndex];
+                menuToDraw = lastMenu;
 
                 {
                     EditorGUILayout.BeginHorizontal();
@@ -205,10 +245,10 @@ namespace GabSith.WFT
                     GUILayout.Label("Current Menu: ");
                     EditorGUILayout.ObjectField(lastMenu, typeof(VRCExpressionsMenu), false);
 
-                    if (controlList.Count == 1)
-                    {
-                        GUI.enabled = false;
-                    }
+                    isFirstMenu = controlList.Count == 1;
+
+                    GUI.enabled = !isFirstMenu;
+
 
                     if (GUILayout.Button("Back", GUILayout.Width(123)))
                     {
@@ -252,18 +292,52 @@ namespace GabSith.WFT
 
 
                                         // Menu or otherwise button
-                                        float width = Screen.width - 241f;
+                                        //float width = Screen.width - 241f;
 
                                         if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu) // If the control is a menu
                                         {
                                             Color def = GUI.backgroundColor;
                                             GUI.backgroundColor = folderColor;
+                                            /*
+                                            using (var v = new EditorGUILayout.HorizontalScope("Button", GUILayout.MaxWidth(width), GUILayout.ExpandWidth(false)))
+                                            {
+                                                if (GUI.Button(v.rect, GUIContent.none) && control.subMenu != null)
+                                                    controlList.Add(control.subMenu); 
+                                                GUILayout.Label(control.icon, GUILayout.Height(35));
+                                                GUILayout.Label(control.name + " ➔");
+                                                GUILayout.Label(control.parameter.name);
+                                            }*/
+                                            MenuButton(control);
+                                            /*
+                                            using (var horizontalScope = new EditorGUILayout.HorizontalScope(menuButtons, GUILayout.MaxWidth(width), GUILayout.ExpandWidth(false)))
+                                            {
+                                                bool isClicked = GUI.Button(horizontalScope.rect, "", GUIStyle.none);
 
+                                                GUILayout.Label(control.icon, menuButtonsIcon, GUILayout.Width(60), GUILayout.Height(35));
+                                                GUILayout.Label(control.name + " ➔", menuButtonsLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(10));
+
+                                                if (!string.IsNullOrEmpty(control.parameter.name))
+                                                {
+                                                    // Flexible space to push parameter to the right
+                                                    GUILayout.FlexibleSpace();
+
+                                                    Color defCol = GUI.color;
+                                                    GUI.color = new Color(1f, 1f, 1f, 0.6f);
+                                                    GUILayout.Label(control.parameter.name, menuButtonsParam, GUILayout.Width(80));
+                                                    GUI.color = defCol;
+                                                }
+                                                // Handle click event
+                                                if (isClicked && control.subMenu != null)
+                                                {
+                                                    controlList.Add(control.subMenu);
+                                                }
+                                            }             */                             
+                                            /*
                                             if (GUILayout.Button(new GUIContent(control.name + " ➔", control.icon), menuButtons, GUILayout.MaxWidth(width)))
                                             {
                                                 if (control.subMenu != null)
                                                     controlList.Add(control.subMenu);
-                                            }
+                                            }*/
                                             CheckDragAndDrop(ref control.icon, ref control.subMenu, lastMenu);
                                             GUI.backgroundColor = def;
 
@@ -288,8 +362,11 @@ namespace GabSith.WFT
                                                     break;
                                             }
 
+                                            MenuButton(control);
 
-                                            GUILayout.Button(new GUIContent(control.name, control.icon), menuButtons, GUILayout.MaxWidth(width));
+
+                                            //GUILayout.Button(new GUIContent(control.name, control.icon), menuButtons, GUILayout.MaxWidth(width));
+
                                             CheckDragAndDrop(ref control.icon, lastMenu);
 
 
@@ -452,13 +529,22 @@ namespace GabSith.WFT
             }
 
 
-            // Use a space to separate the fields
             EditorGUILayout.Space();
 
-            // End the vertical layout group
+            showPreview = EditorGUILayout.Foldout(showPreview, "Preview");
+            preview.target = showPreview && RequirementsMet(false);
+            using (var group = new EditorGUILayout.FadeGroupScope(preview.faded))
+
+                if (group.visible)
+                {
+                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                    RadialMenuDrawer.DrawRadialMenu(EditorGUILayout.GetControlRect(false, 320f), menuToDraw, isFirstMenu && !useSelected);
+                    EditorGUILayout.EndVertical();
+                }
+            EditorGUILayout.EndScrollView();
+
             EditorGUILayout.EndVertical();
 
-            // Use a space to separate the preview
             EditorGUILayout.Space(10);
 
         }
@@ -486,6 +572,62 @@ namespace GabSith.WFT
             }
 
             return text;
+        }
+
+        void MenuButton(VRCExpressionsMenu.Control control)
+        {
+            float width = Screen.width - 241f;
+
+            using (var horizontalScope = new EditorGUILayout.HorizontalScope(menuButtons, GUILayout.MaxWidth(width), GUILayout.ExpandWidth(false)))
+            {
+                bool isClicked = GUI.Button(horizontalScope.rect, "", GUIStyle.none);
+
+                GUILayout.Label(control.icon, menuButtonsIcon, GUILayout.Width(60), GUILayout.Height(35));
+
+                GUILayout.Label(control.name, menuButtonsLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(10));
+
+
+
+                if (!string.IsNullOrEmpty(control.parameter.name))
+                {
+                    // Flexible space to push parameter to the right
+                    GUILayout.FlexibleSpace();
+
+                    if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu)
+                    {
+                        GUILayout.Label(EditorGUIUtility.IconContent("d_FolderOpened Icon"), menuButtonsLabel, GUILayout.Width(30));
+                    }
+
+                    Color defCol = GUI.color;
+                    GUI.color = new Color(0.8f, 0.8f, 0.8f, 0.6f);
+                    GUILayout.Label("|", menuButtonsParam, GUILayout.Width(10));
+
+                    if (!ContainsParameter(control.parameter.name))
+                    {
+                        GUILayout.Label(EditorGUIUtility.IconContent("d_console.warnicon", "Parameter was not found in the avatar's Expression Paramaters"), 
+                            menuButtonsParam, GUILayout.Width(20));
+                        GUI.color = new Color(0.9f, 0.8f, 0.55f, 0.6f);
+                        GUILayout.Label(control.parameter.name, menuButtonsParam, GUILayout.Width(60));
+                    }
+                    else
+                        GUILayout.Label(control.parameter.name, menuButtonsParam, GUILayout.Width(80));
+                    GUI.color = defCol;
+                }
+                else if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu)
+                {
+                        GUILayout.Label(EditorGUIUtility.IconContent("d_FolderOpened Icon"), menuButtonsLabel, GUILayout.Width(30));
+                }
+
+
+
+                // If a submenu is clicked, add it to the list
+                if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu)
+                    if (isClicked && control.subMenu != null)
+                    {
+                        controlList.Add(control.subMenu);
+                    }
+            }
+
         }
 
         private void CheckDragAndDrop(ref Texture2D texture, VRCExpressionsMenu cont)
@@ -682,27 +824,52 @@ namespace GabSith.WFT
                 if (Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets).Length > 0)
                     menu = Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets)[0];
             }
-
         }
 
-        bool RequirementsMet()
+        bool ContainsParameter(string parameter)
+        {
+            if (avatarDescriptor != null && avatarDescriptor.expressionParameters != null)
+            {
+                List<string> parameterNames = new List<string> { };
+                foreach (var item in avatarDescriptor.expressionParameters.parameters)
+                {
+                    parameterNames.Add(item.name);
+                }
+                return parameterNames.Contains(parameter);
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        bool RequirementsMet(bool showWarning = true)
         {
             if (!useSelected && avatarDescriptor == null)
             {
-                EditorGUILayout.HelpBox("No avatar descriptor selected", MessageType.Error);
-                EditorGUILayout.Space(40);
+                if (showWarning)
+                {
+                    EditorGUILayout.HelpBox("No avatar descriptor selected", MessageType.Error);
+                    EditorGUILayout.Space(40);
+                }
                 return false;
             }
             else if (!useSelected && (!avatarDescriptor.customExpressions || avatarDescriptor.expressionParameters == null || avatarDescriptor.expressionsMenu == null)) 
             {
-                EditorGUILayout.HelpBox("Expression Menu or Expression Parameters cannot be accessed", MessageType.Error);
-                EditorGUILayout.Space(40);
+                if (showWarning)
+                {
+                    EditorGUILayout.HelpBox("Expression Menu or Expression Parameters cannot be accessed", MessageType.Error);
+                    EditorGUILayout.Space(40);
+                }
                 return false;
             }
             else if (useSelected && Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets).Length < 1)
             {
-                EditorGUILayout.HelpBox("No menu selected", MessageType.Error);
-                EditorGUILayout.Space(40);
+                if (showWarning)
+                {
+                    EditorGUILayout.HelpBox("No menu selected", MessageType.Error);
+                    EditorGUILayout.Space(40);
+                }
                 return false;
             }
 

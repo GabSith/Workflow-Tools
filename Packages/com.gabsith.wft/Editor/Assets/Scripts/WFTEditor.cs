@@ -22,14 +22,8 @@ namespace GabSith.WFT
         Color defaultHeaderColor = new Color(0.95f, 0.9f, 0.9f, 1f);
         Color defautButtonsColor = new Color(0.9f, 1.15f, 1.45f);
 
-
-        //bool customizationFold.target = false;
-
-        //bool folderFold = false;
         AnimBool folderFold = new AnimBool(false);
         AnimBool customizationFold = new AnimBool(false);
-        bool menuEditorFold = false;
-        private AnimBool myFoldout = new AnimBool(false);
         AnimBool drop = new AnimBool(false);
 
         Vector2 scrollPos;
