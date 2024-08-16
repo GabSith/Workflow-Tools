@@ -26,6 +26,7 @@ namespace GabSith.WFT
 
 
         bool useSelected = false;
+        //bool selectionChanged = false;
         int previousSelection;
 
         VRCExpressionParameters parameters;
@@ -95,8 +96,36 @@ namespace GabSith.WFT
             defaultColor = GUI.color;
 
             preview.valueChanged.AddListener(new UnityAction(Repaint));
+            Selection.selectionChanged += OnSelectionChanged;
 
         }
+
+        private void OnDisable()
+        {
+            Selection.selectionChanged -= OnSelectionChanged;
+        }
+
+        private void OnSelectionChanged()
+        {
+            if (useSelected)
+            {
+                VRCExpressionsMenu[] selection = Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets);
+                if (selection.Length > 0)
+                {
+                    int selectionID = selection[0].GetInstanceID();
+                    if (selectionID != previousSelection)
+                    {
+                        menu = selection[0];
+                        RefreshMenu();
+                        previousSelection = selectionID;
+                        Repaint();
+                    }
+                }
+            }
+        }
+
+
+
 
         void OnGUI()
         {
@@ -168,14 +197,7 @@ namespace GabSith.WFT
 
             EditorGUILayout.Space();
 
-            // Use Selected
-            //if (useSelected)
-            //{
-                //GUI.backgroundColor = CommonActions.selectionColor;
-                //GUI.backgroundColor = ProjectSettingsManager.GetColor("ButtonsColorKey", CommonActions.selectionColor);
 
-            //}
-            //if (GUILayout.Button("Use Selected Menu", GUILayout.Height(25f)))
             if (CommonActions.ToggleButton("Use Selected Menu", useSelected, GUILayout.Height(25f)))
             {
                 useSelected = !useSelected;
@@ -203,6 +225,7 @@ namespace GabSith.WFT
 
 
             // Selection Changed
+            /*
             if (useSelected)
             {
                 VRCExpressionsMenu[] selection = Selection.GetFiltered<VRCExpressionsMenu>(SelectionMode.Assets);
@@ -218,7 +241,7 @@ namespace GabSith.WFT
                         previousSelection = selectionID;
                     }
                 }
-            }
+            }*/
 
 
 
