@@ -34,7 +34,10 @@ namespace GabSith.WFT
         private const string AssetCreatorFolderKey = "AssetCreatorFolderKey";
         private const string AssetCreatorUseGlobalKey = "AssetCreatorUseGlobalKey";
         private const string AssetCreatorFolderSuffixKey = "AssetCreatorFolderSuffixKey";
+        private const string AssetCreatorUseSelectionKey = "AssetCreatorUseSelectionKey";
         string suffix;
+
+        private bool useSelectionFolder = true;
 
         // Array of shader names and the selected shader index
         string[] shaders = new string[4] { "Standard", "VRChat/Mobile/Toon Lit", "VRChat/Mobile/Standard Lite", ".poiyomi/Poiyomi Toon" };
@@ -60,6 +63,7 @@ namespace GabSith.WFT
         private void OnEnable()
         {
             int.TryParse(ProjectSettingsManager.GetString(AssetCreatorSelectedShaderKey), out selectedShader);
+            useSelectionFolder = ProjectSettingsManager.GetBool(AssetCreatorUseSelectionKey, true);
             materialMode.valueChanged.AddListener(new UnityAction(Repaint));
         }
 
@@ -127,6 +131,20 @@ namespace GabSith.WFT
             }
 
             EditorGUILayout.Space(20f);
+
+            EditorGUI.BeginChangeCheck();
+            useSelectionFolder = EditorGUILayout.ToggleLeft("Use Selected Folder", useSelectionFolder);
+            if (EditorGUI.EndChangeCheck())
+            {
+                ProjectSettingsManager.SetBool(AssetCreatorUseSelectionKey, useSelectionFolder);
+            }
+
+            if (useSelectionFolder)
+            {
+                GUIStyle pathLabelStyle = new GUIStyle(EditorStyles.miniLabel) { wordWrap = true };
+                string selectedFolder = GetSelectedFolderInProject();
+                EditorGUILayout.LabelField("Selected: " + (selectedFolder ?? "None"), pathLabelStyle);
+            }
 
             // Folder selection
             CommonActions.SelectFolder(AssetCreatorUseGlobalKey, AssetCreatorFolderKey, AssetCreatorFolderSuffixKey, ref suffix);
@@ -257,7 +275,35 @@ namespace GabSith.WFT
         /// </summary>
         string GetFolder()
         {
+            if (useSelectionFolder)
+            {
+                string selectedFolder = GetSelectedFolderInProject();
+                if (!string.IsNullOrEmpty(selectedFolder))
+                {
+                    return selectedFolder;
+                }
+            }
             return CommonActions.GetFolder(AssetCreatorUseGlobalKey, AssetCreatorFolderKey, AssetCreatorFolderSuffixKey);
+        }
+
+        string GetSelectedFolderInProject()
+        {
+            UnityEngine.Object selected = Selection.activeObject;
+            if (selected == null)
+                return null;
+
+            string path = AssetDatabase.GetAssetPath(selected);
+            if (string.IsNullOrEmpty(path))
+                return null;
+
+            if (AssetDatabase.IsValidFolder(path))
+                return path;
+
+            string parentPath = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(parentPath) && AssetDatabase.IsValidFolder(parentPath))
+                return parentPath;
+
+            return null;
         }
 
         /// <summary>

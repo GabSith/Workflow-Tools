@@ -61,7 +61,7 @@ namespace GabSith.WFT
 
 
             // Use Header
-            bool useHeader = ProjectSettingsManager.EditorGUIBool(SettingsUseHeaderKey, "Use Header", true);
+            bool useHeader = ProjectSettingsManager.EditorGUIBool(SettingsUseHeaderKey, "Use Header", false);
             /*
             EditorGUILayout.LabelField("Header", label);
             EditorGUI.BeginChangeCheck();

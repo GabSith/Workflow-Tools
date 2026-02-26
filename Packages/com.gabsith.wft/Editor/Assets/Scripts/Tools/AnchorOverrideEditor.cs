@@ -79,9 +79,9 @@ namespace GabSith.WFT
 
             if (parent != null)
             {
-                List<SkinnedMeshRenderer> renderers = new List<SkinnedMeshRenderer> { };
+                List<Renderer> renderers = new List<Renderer>();
 
-                foreach (var item in parent.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                foreach (var item in parent.GetComponentsInChildren<Renderer>(true))
                 {
                     renderers.Add(item);
                 }
@@ -104,7 +104,7 @@ namespace GabSith.WFT
 
                     GUILayout.Label(" is found in ", GUILayout.Width(70));
 
-                    EditorGUILayout.ObjectField(item, typeof(SkinnedMeshRenderer), true, GUILayout.Width(100));
+                    EditorGUILayout.ObjectField(item, typeof(Renderer), true, GUILayout.Width(100));
 
                     EditorGUILayout.EndHorizontal();
 

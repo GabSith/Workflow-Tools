@@ -49,6 +49,7 @@ namespace GabSith.WFT
 
         bool useExistingAnimation = false;
         bool slowTrasition = false;
+        bool separateAnimations = false;
 
         AnimBool fold = new AnimBool(false);
         AnimBool advancedFold = new AnimBool(false);
@@ -284,6 +285,8 @@ namespace GabSith.WFT
 
                     useWriteDefaults = EditorGUILayout.Toggle("Use Write Defaults", useWriteDefaults);
 
+                    separateAnimations = EditorGUILayout.Toggle("Separate On/Off Animations", separateAnimations);
+
 
                     EditorGUILayout.Space();
 
@@ -448,10 +451,11 @@ namespace GabSith.WFT
                 // ANIMATION
 
             AnimationClip clip = CreateAnimations(animationName);
+            AnimationClip clipOff = separateAnimations ? GetOffAnimationClip(animationName) : null;
 
                 // LOGIC
 
-            CreateLogic(parameterName, clip);
+            CreateLogic(parameterName, clip, clipOff);
 
             MakeSureItDoesTheThing(FXLayer);
             
@@ -542,7 +546,7 @@ namespace GabSith.WFT
             FXLayer.AddLayer(newLayer);
         }
 
-        void CreateLogic(string name, AnimationClip animationClip)
+        void CreateLogic(string name, AnimationClip animationClip, AnimationClip offClip = null)
         {
             var root = FXLayer.layers[FXLayer.layers.Length - 1].stateMachine;
 
@@ -559,11 +563,18 @@ namespace GabSith.WFT
                 theAnimations[i].motion = proxy;
             }
 
-            theAnimations[2].speed = -1f;
-            //AnimationClip clip = AssetDatabase.LoadAssetAtPath(folderPath + "/" + animationName.Replace("/", " ") + ".anim", typeof(AnimationClip)) as AnimationClip;
             AnimationClip clip = animationClip;
-            theAnimations[2].motion = clip;
             theAnimations[1].motion = clip;
+
+            if (offClip != null)
+            {
+                theAnimations[2].motion = offClip;
+            }
+            else
+            {
+                theAnimations[2].speed = -1f;
+                theAnimations[2].motion = clip;
+            }
 
 
             // TRANSITIONS
@@ -625,38 +636,69 @@ namespace GabSith.WFT
         {
             if (!useExistingAnimation)
             {
-                AnimationClip clip = new AnimationClip();
-
-                AnimationCurve curve1 = AnimationCurve.Linear(0, 0, 0.016666f, 1);
-                clip.SetCurve(GetPathToObject(gameObject.transform), typeof(GameObject), "m_IsActive", curve1);
-
-                if (extraGameObjects != null && extraGameObjects.Count > 0)
+                if (separateAnimations)
                 {
-                    for (int i = 0; i < extraGameObjects.Count; i++)
-                    {
-                        if (extraGameObjects[i] == null)
-                        {
-                            continue;
-                        }
-                        clip.SetCurve(GetPathToObject(extraGameObjects[i].transform), typeof(GameObject), "m_IsActive", curve1);
-                    }
+                    AnimationClip clipOn = CreateAnimationClip(animationName + " On", 1);
+                    AnimationClip clipOff = CreateAnimationClip(animationName + " Off", 0);
+                    return clipOn;
                 }
-
-
-                Directory.CreateDirectory(GetFolder());
-                string clipPath = GetFolder() + "/" + animationName.Replace("/", " ") + ".anim";
-                AssetDatabase.CreateAsset(clip, clipPath);
-
-                clip = AssetDatabase.LoadAssetAtPath(clipPath, typeof(AnimationClip)) as AnimationClip;
-
-                MakeSureItDoesTheThing(clip);
-
-                EditorGUIUtility.PingObject(clip);
-
-                return clip;
+                else
+                {
+                    return CreateAnimationClip(animationName, -1);
+                }
             }
             else
                 return existingAnimation;
+        }
+
+        AnimationClip CreateAnimationClip(string name, int onValue)
+        {
+            AnimationClip clip = new AnimationClip();
+
+            Keyframe[] keys;
+            if (onValue >= 0)
+            {
+                keys = new Keyframe[] { new Keyframe(0, onValue, float.PositiveInfinity, float.PositiveInfinity) };
+            }
+            else
+            {
+                keys = new Keyframe[] {
+                    new Keyframe(0, 0, float.PositiveInfinity, float.PositiveInfinity),
+                    new Keyframe(0.016666f, 1, float.PositiveInfinity, float.PositiveInfinity)
+                };
+            }
+            AnimationCurve curve1 = new AnimationCurve(keys);
+            clip.SetCurve(GetPathToObject(gameObject.transform), typeof(GameObject), "m_IsActive", curve1);
+
+            if (extraGameObjects != null && extraGameObjects.Count > 0)
+            {
+                for (int i = 0; i < extraGameObjects.Count; i++)
+                {
+                    if (extraGameObjects[i] == null)
+                    {
+                        continue;
+                    }
+                    clip.SetCurve(GetPathToObject(extraGameObjects[i].transform), typeof(GameObject), "m_IsActive", curve1);
+                }
+            }
+
+
+            Directory.CreateDirectory(GetFolder());
+            string clipPath = GetFolder() + "/" + name.Replace("/", " ") + ".anim";
+            AssetDatabase.CreateAsset(clip, clipPath);
+
+            clip = AssetDatabase.LoadAssetAtPath(clipPath, typeof(AnimationClip)) as AnimationClip;
+
+            MakeSureItDoesTheThing(clip);
+
+            EditorGUIUtility.PingObject(clip);
+
+            return clip;
+        }
+
+        AnimationClip GetOffAnimationClip(string animationName)
+        {
+            return AssetDatabase.LoadAssetAtPath(GetFolder() + "/" + animationName.Replace("/", " ") + " Off.anim", typeof(AnimationClip)) as AnimationClip;
         }
 
         bool RequirementsMet()

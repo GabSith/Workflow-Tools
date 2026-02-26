@@ -133,8 +133,13 @@ namespace GabSith.WFT
                 {
                     // Name and Icon
                     EditorGUILayout.BeginHorizontal();
+                    EditorGUI.BeginChangeCheck();
                     control.name = EditorGUILayout.TextField("", control.name, new GUIStyle(EditorStyles.textArea) { wordWrap = true }, GUILayout.Height(60));
                     control.icon = EditorGUILayout.ObjectField("", control.icon, typeof(Texture2D), true, GUILayout.Width(60f), GUILayout.Height(60f)) as Texture2D;
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        EditorUtility.SetDirty(menu);
+                    }
                     EditorGUILayout.EndHorizontal();
 
 
@@ -204,15 +209,20 @@ namespace GabSith.WFT
                     selectedControl = EditorGUILayout.Popup("Type: ", selectedControl, controlOptions);
                     if (EditorGUI.EndChangeCheck())
                     {
-                        //Debug.Log(controlOptions[selectedControl]);
+                        control.type = GetControlFromInt(selectedControl);
+                        EditorUtility.SetDirty(menu);
                     }
-                    control.type = GetControlFromInt(selectedControl);
 
                     EditorGUILayout.Space();
                     
                     EditorGUILayout.BeginHorizontal();
 
+                    EditorGUI.BeginChangeCheck();
                     control.parameter.name = EditorGUILayout.TextField("Parameter: ", control.parameter.name);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        EditorUtility.SetDirty(menu);
+                    }
                     if (avatarAvailable)
                     {
                         EditorGUI.BeginChangeCheck();
@@ -228,7 +238,7 @@ namespace GabSith.WFT
                             {
                                 string parameterName = CreateParameterList(expressionParameters)[valParam - 1];
                                 control.parameter.name = parameterName;
-
+                                EditorUtility.SetDirty(menu);
                             }
                             else
                                 control.parameter.name = "";
@@ -265,7 +275,12 @@ namespace GabSith.WFT
 
                         EditorGUILayout.BeginHorizontal();
 
+                        EditorGUI.BeginChangeCheck();
                         control.subMenu = EditorGUILayout.ObjectField("Sub Menu", control.subMenu, typeof(VRCExpressionsMenu), true, GUILayout.Height(EditorGUIUtility.singleLineHeight)) as VRCExpressionsMenu;
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            EditorUtility.SetDirty(menu);
+                        }
 
                         // OPTION TO CREATE SUBMENU
                         if (CommonActions.ToggleButton("Create", createMode, GUILayout.Width(100)))
@@ -317,8 +332,12 @@ namespace GabSith.WFT
                         {
                             EditorGUILayout.BeginHorizontal();
 
-
+                            EditorGUI.BeginChangeCheck();
                             control.subParameters[0].name = EditorGUILayout.TextField("Parameter Rotation: ", control.subParameters[0].name);
+                            if (EditorGUI.EndChangeCheck())
+                            {
+                                EditorUtility.SetDirty(menu);
+                            }
                             if (avatarAvailable)
                             {
                                 EditorGUI.BeginChangeCheck();
@@ -326,7 +345,10 @@ namespace GabSith.WFT
                                 if (EditorGUI.EndChangeCheck())
                                 {
                                     if (val != 0)
+                                    {
                                         control.subParameters[0].name = CreateParameterList(expressionParameters, true, true)[val - 1];
+                                        EditorUtility.SetDirty(menu);
+                                    }
                                     else
                                         control.subParameters[0].name = "";
                                 }
@@ -371,7 +393,12 @@ namespace GabSith.WFT
                         EditorGUILayout.Space(10);
 
                         EditorGUILayout.BeginHorizontal();
+                        EditorGUI.BeginChangeCheck();
                         control.subParameters[0].name = EditorGUILayout.TextField("Parameter Horizontal: ", control.subParameters[0].name);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            EditorUtility.SetDirty(menu);
+                        }
                         if (avatarAvailable)
                         {
                             EditorGUI.BeginChangeCheck();
@@ -379,7 +406,10 @@ namespace GabSith.WFT
                             if (EditorGUI.EndChangeCheck())
                             {
                                 if (val != 0)
+                                {
                                     control.subParameters[0].name = CreateParameterList(expressionParameters, true, false)[val - 1];
+                                    EditorUtility.SetDirty(menu);
+                                }
                                 else
                                     control.subParameters[0].name = "";
                             }
@@ -391,7 +421,12 @@ namespace GabSith.WFT
                             EditorGUILayout.EndHorizontal();
                         }
                         EditorGUILayout.BeginHorizontal();
+                        EditorGUI.BeginChangeCheck();
                         control.subParameters[1].name = EditorGUILayout.TextField("Parameter Vertical: ", control.subParameters[1].name);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            EditorUtility.SetDirty(menu);
+                        }
                         if (avatarAvailable)
                         {
                             EditorGUI.BeginChangeCheck();
@@ -399,7 +434,10 @@ namespace GabSith.WFT
                             if (EditorGUI.EndChangeCheck())
                             {
                                 if (val1 != 0)
+                                {
                                     control.subParameters[1].name = CreateParameterList(expressionParameters, true, false)[val1 - 1];
+                                    EditorUtility.SetDirty(menu);
+                                }
                                 else
                                     control.subParameters[1].name = "";
                             }
@@ -425,7 +463,12 @@ namespace GabSith.WFT
                         EditorGUILayout.Space(10);
 
                         EditorGUILayout.BeginHorizontal();
+                        EditorGUI.BeginChangeCheck();
                         control.subParameters[0].name = EditorGUILayout.TextField("Parameter Up: ", control.subParameters[0].name);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            EditorUtility.SetDirty(menu);
+                        }
                         if (avatarAvailable)
                         {
                             EditorGUI.BeginChangeCheck();
@@ -433,7 +476,10 @@ namespace GabSith.WFT
                             if (EditorGUI.EndChangeCheck())
                             {
                                 if (val != 0)
+                                {
                                     control.subParameters[0].name = CreateParameterList(expressionParameters, true, false)[val - 1];
+                                    EditorUtility.SetDirty(menu);
+                                }
                                 else
                                     control.subParameters[0].name = "";
                             }
@@ -448,7 +494,12 @@ namespace GabSith.WFT
                             EditorGUILayout.EndHorizontal();
                         }
                         EditorGUILayout.BeginHorizontal();
+                        EditorGUI.BeginChangeCheck();
                         control.subParameters[1].name = EditorGUILayout.TextField("Parameter Right: ", control.subParameters[1].name);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            EditorUtility.SetDirty(menu);
+                        }
                         if (avatarAvailable)
                         {
                             EditorGUI.BeginChangeCheck();
@@ -456,7 +507,10 @@ namespace GabSith.WFT
                             if (EditorGUI.EndChangeCheck())
                             {
                                 if (val1 != 0)
+                                {
                                     control.subParameters[1].name = CreateParameterList(expressionParameters, true, false)[val1 - 1];
+                                    EditorUtility.SetDirty(menu);
+                                }
                                 else
                                     control.subParameters[1].name = "";
                             }
@@ -469,7 +523,12 @@ namespace GabSith.WFT
                             EditorGUILayout.EndHorizontal();
                         }
                         EditorGUILayout.BeginHorizontal();
+                        EditorGUI.BeginChangeCheck();
                         control.subParameters[2].name = EditorGUILayout.TextField("Parameter Down: ", control.subParameters[2].name);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            EditorUtility.SetDirty(menu);
+                        }
                         if (avatarAvailable)
                         {
                             EditorGUI.BeginChangeCheck();
@@ -477,7 +536,10 @@ namespace GabSith.WFT
                             if (EditorGUI.EndChangeCheck())
                             {
                                 if (val2 != 0)
+                                {
                                     control.subParameters[2].name = CreateParameterList(expressionParameters, true, false)[val2 - 1];
+                                    EditorUtility.SetDirty(menu);
+                                }
                                 else
                                     control.subParameters[2].name = "";
                             }
@@ -492,7 +554,12 @@ namespace GabSith.WFT
                             EditorGUILayout.EndHorizontal();
                         }
                         EditorGUILayout.BeginHorizontal();
+                        EditorGUI.BeginChangeCheck();
                         control.subParameters[3].name = EditorGUILayout.TextField("Parameter Left: ", control.subParameters[3].name);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            EditorUtility.SetDirty(menu);
+                        }
                         if (avatarAvailable)
                         {
                             EditorGUI.BeginChangeCheck();
@@ -500,7 +567,10 @@ namespace GabSith.WFT
                             if (EditorGUI.EndChangeCheck())
                             {
                                 if (val3 != 0)
+                                {
                                     control.subParameters[3].name = CreateParameterList(expressionParameters, true, false)[val3 - 1];
+                                    EditorUtility.SetDirty(menu);
+                                }
                                 else
                                     control.subParameters[3].name = "";
                             }

@@ -423,9 +423,8 @@ namespace GabSith.WFT
                                             GUI.enabled = false;
                                         if (GUILayout.Button(new GUIContent("Paste"), new GUIStyle(EditorStyles.miniButton) { fixedHeight = smallButtonsHeight, fontSize = 10 }))
                                         {
+                                            Undo.RecordObject(lastMenu, "Paste Control");
                                             lastMenu.controls[i] = Duplicate(copiedControl);
-                                            //controlList[controlList.Count - 1].controls.RemoveAt(i);
-                                            //controlList[controlList.Count - 1].controls.Add(Duplicate(copiedControl));
                                             EditorUtility.SetDirty(lastMenu);
                                         }
                                         GUI.enabled = true;
@@ -436,6 +435,7 @@ namespace GabSith.WFT
                                         // Delete
                                         if (GUILayout.Button(new GUIContent("Delete"), menuButtons, GUILayout.Width(60)))
                                         {
+                                            Undo.RecordObject(lastMenu, "Delete Control");
                                             lastMenu.controls.RemoveAt(i);
                                             EditorUtility.SetDirty(lastMenu);
                                         }
@@ -451,6 +451,7 @@ namespace GabSith.WFT
                                 {
                                     currentlyDraggingItemIndex = i;
                                     EditorGUIUtility.SetWantsMouseJumping(1);
+                                    Undo.RegisterCompleteObjectUndo(lastMenu, "Reorder Controls");
                                 }
                                 else if (e.type == EventType.MouseDrag && currentlyDraggingItemIndex > -1)
                                 {
@@ -475,6 +476,7 @@ namespace GabSith.WFT
                                     lastMenu.controls.RemoveAt(currentlyDraggingItemIndex);
                                     lastMenu.controls.Insert(i, temp);
                                     currentlyDraggingItemIndex = i;
+                                    EditorUtility.SetDirty(lastMenu);
                                     Repaint();
                                 }
                             }
@@ -499,6 +501,7 @@ namespace GabSith.WFT
                                             icon = null,
 
                                         };
+                                        Undo.RecordObject(lastMenu, "Create Control");
                                         lastMenu.controls.Add(newControl);
                                         EditorUtility.SetDirty(lastMenu);
 
@@ -515,6 +518,7 @@ namespace GabSith.WFT
                                         GUI.enabled = false;
                                     if (GUILayout.Button("Paste", menuButtons, GUILayout.Width(60)))
                                     {
+                                        Undo.RecordObject(lastMenu, "Paste Control");
                                         lastMenu.controls.Add(Duplicate(copiedControl));
                                         EditorUtility.SetDirty(lastMenu);
                                     }
@@ -677,12 +681,14 @@ namespace GabSith.WFT
                     {
                         if (DragAndDrop.objectReferences[0] as Texture2D != null)
                         {
+                            Undo.RecordObject(cont, "Set Control Icon");
                             DragAndDrop.AcceptDrag();
                             texture = DragAndDrop.objectReferences[0] as Texture2D;
                             EditorUtility.SetDirty(cont);
                         }
                         else if (DragAndDrop.objectReferences[0] as VRCExpressionsMenu != null)
                         {
+                            Undo.RecordObject(cont, "Set Control Icon");
                             DragAndDrop.AcceptDrag();
                             texture = DragAndDrop.objectReferences[0] as Texture2D;
                             EditorUtility.SetDirty(cont);
@@ -717,13 +723,14 @@ namespace GabSith.WFT
                     {
                         if (DragAndDrop.objectReferences[0] as Texture2D != null)
                         {
-
+                            Undo.RecordObject(cont, "Set Control Icon");
                             DragAndDrop.AcceptDrag();
                             texture = DragAndDrop.objectReferences[0] as Texture2D;
                             EditorUtility.SetDirty(cont);
                         }
                         else if (DragAndDrop.objectReferences[0] as VRCExpressionsMenu != null)
                         {
+                            Undo.RecordObject(cont, "Set Submenu");
                             DragAndDrop.AcceptDrag();
                             submenu = DragAndDrop.objectReferences[0] as VRCExpressionsMenu;
                             EditorUtility.SetDirty(cont);
@@ -760,8 +767,6 @@ namespace GabSith.WFT
                         {
                             DragAndDrop.AcceptDrag();
 
-                            // Create new submenu
-
                             VRCExpressionsMenu.Control newControl = new VRCExpressionsMenu.Control
                             {
                                 name = DragAndDrop.objectReferences[0].name,
@@ -773,6 +778,7 @@ namespace GabSith.WFT
                                 subMenu = DragAndDrop.objectReferences[0] as VRCExpressionsMenu
 
                             };
+                            Undo.RecordObject(cont, "Add Submenu Control");
                             cont.controls.Add(newControl);
                             EditorUtility.SetDirty(cont);
                         }

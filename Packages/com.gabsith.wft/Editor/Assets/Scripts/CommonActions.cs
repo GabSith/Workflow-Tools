@@ -34,7 +34,7 @@ namespace GabSith.WFT
         /// <param name="name">The name to display in the title.</param>
         public static void GenerateTitle(string name)
         {
-            if (ProjectSettingsManager.GetBool(SettingsUseHeaderKey, true))
+            if (ProjectSettingsManager.GetBool(SettingsUseHeaderKey, false))
             {
                 Color defaultColor = GUI.backgroundColor;
                 GUI.backgroundColor = ProjectSettingsManager.GetColor(HeaderColorKey, defaultHeaderColor);

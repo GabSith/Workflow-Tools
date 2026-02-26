@@ -41,6 +41,12 @@ namespace GabSith.WFT
         private Color borderColor = Color.black;
         private int borderWidth = 2;
 
+        private bool showGridOverlay = false;
+        private int gridVerticalLines = 1;
+        private int gridHorizontalLines = 1;
+        private Color gridColor = new Color(1f, 1f, 1f, 0.5f);
+        private Texture2D gridTexture;
+
         [MenuItem("GabSith/Image Creator", false, 102)]
         public static void ShowWindow()
         {
@@ -76,6 +82,10 @@ namespace GabSith.WFT
             if (borderTexture != null)
             {
                 DestroyImmediate(borderTexture);
+            }
+            if (gridTexture != null)
+            {
+                DestroyImmediate(gridTexture);
             }
         }
 
@@ -175,23 +185,47 @@ namespace GabSith.WFT
             GUILayout.Space(10);
             showPreview.target = EditorGUILayout.Toggle("Show Preview", showPreview.target);
 
-            /*
-            EditorGUI.BeginChangeCheck();
-            borderColor = EditorGUILayout.ColorField("Border Color", borderColor);
-            borderWidth = EditorGUILayout.IntSlider("Border Width", borderWidth, 1, 10);
-            if (EditorGUI.EndChangeCheck())
+            if (showPreview.target)
             {
-                CreateBorderTexture();
+
             }
-            */
+
             using (var group = new EditorGUILayout.FadeGroupScope(showPreview.faded))
             if (group.visible && isVisible)
             {
+
+                EditorGUI.BeginChangeCheck();
+                showGridOverlay = EditorGUILayout.Toggle("Grid Overlay", showGridOverlay);
+                if (showGridOverlay)
+                {
+                    EditorGUI.indentLevel++;
+                    gridVerticalLines = EditorGUILayout.IntSlider("Vertical Lines", gridVerticalLines, 1, 10);
+                    gridHorizontalLines = EditorGUILayout.IntSlider("Horizontal Lines", gridHorizontalLines, 1, 10);
+                    gridColor = EditorGUILayout.ColorField("Grid Color", gridColor);
+                    EditorGUI.indentLevel--;
+                }
+                if (EditorGUI.EndChangeCheck())
+                {
+                    CreateGridTexture();
+                }
+
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 UpdatePreview();
                 Rect previewRect = GUILayoutUtility.GetAspectRect(16f / 9f);
 
-                GUI.DrawTexture(previewRect, previewTexture, ScaleMode.ScaleToFit);
+                if (useTransparentBackground)
+                {
+                    EditorGUI.DrawTextureTransparent(previewRect, previewTexture, ScaleMode.ScaleToFit);
+                }
+                else
+                {
+                    GUI.DrawTexture(previewRect, previewTexture, ScaleMode.ScaleToFit);
+                }
+
+                if (showGridOverlay && gridTexture != null)
+                {
+                    GUI.DrawTexture(previewRect, gridTexture, ScaleMode.ScaleToFit);
+                }
 
                 if (useTransparentBackground)
                 {
@@ -243,6 +277,62 @@ namespace GabSith.WFT
             borderTexture.Apply();
         }
 
+        private void CreateGridTexture()
+        {
+            if (gridTexture != null)
+            {
+                DestroyImmediate(gridTexture);
+            }
+            gridTexture = new Texture2D(resolutionWidth, resolutionHeight);
+            Color[] colors = new Color[resolutionWidth * resolutionHeight];
+            for (int i = 0; i < colors.Length; i++)
+            {
+                colors[i] = Color.clear;
+            }
+
+            if (showGridOverlay && gridVerticalLines > 0 && gridHorizontalLines > 0)
+            {
+                float spacingX = (float)resolutionWidth / (gridVerticalLines + 1);
+                float spacingY = (float)resolutionHeight / (gridHorizontalLines + 1);
+                int lineThickness = Mathf.Max(1, Mathf.Min(resolutionWidth, resolutionHeight) / 200);
+
+                for (int i = 1; i <= gridVerticalLines; i++)
+                {
+                    int x = Mathf.RoundToInt(i * spacingX);
+                    for (int t = -lineThickness; t <= lineThickness; t++)
+                    {
+                        int xPos = x + t;
+                        if (xPos >= 0 && xPos < resolutionWidth)
+                        {
+                            for (int y = 0; y < resolutionHeight; y++)
+                            {
+                                colors[y * resolutionWidth + xPos] = gridColor;
+                            }
+                        }
+                    }
+                }
+
+                for (int i = 1; i <= gridHorizontalLines; i++)
+                {
+                    int y = Mathf.RoundToInt(i * spacingY);
+                    for (int t = -lineThickness; t <= lineThickness; t++)
+                    {
+                        int yPos = y + t;
+                        if (yPos >= 0 && yPos < resolutionHeight)
+                        {
+                            for (int x = 0; x < resolutionWidth; x++)
+                            {
+                                colors[yPos * resolutionWidth + x] = gridColor;
+                            }
+                        }
+                    }
+                }
+            }
+
+            gridTexture.SetPixels(colors);
+            gridTexture.Apply();
+        }
+
 
         private void UpdatePreviewTexture()
         {
@@ -253,6 +343,7 @@ namespace GabSith.WFT
             previewTexture = new RenderTexture(resolutionWidth, resolutionHeight, 24);
             previewTexture.antiAliasing = 8;
             CreateBorderTexture();
+            CreateGridTexture();
         }
 
         private void UpdatePreview()

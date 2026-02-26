@@ -16,7 +16,7 @@ namespace GabSith.WFT
         private static string resourcesFolderPath;
 
         public static string defaultPath = "Assets/WF Tools - GabSith/Generated";
-        public static bool useHeader = true;
+        public static bool useHeader = false;
 
         static ProjectSettingsManager()
         {
