@@ -281,6 +281,15 @@ namespace GabSith.WFT
                     }
                     // Can't serialize this reference (e.g. MonoScript, Material) - skip it
                     return "";
+                case SerializedPropertyType.AnimationCurve:
+                    AnimationCurve curve = prop.animationCurveValue;
+                    if (curve == null) return "";
+                    var keyStrings = new List<string>();
+                    foreach (var key in curve.keys)
+                    {
+                        keyStrings.Add($"{key.time};{key.value};{key.inTangent};{key.outTangent};{key.inWeight};{key.outWeight};{(int)key.weightedMode}");
+                    }
+                    return string.Join("|", keyStrings.ToArray()) + $"#{(int)curve.preWrapMode}#{(int)curve.postWrapMode}";
                 default: return "";
             }
         }
@@ -318,6 +327,50 @@ namespace GabSith.WFT
                         {
                             prop.objectReferenceValue = found;
                         }
+                    }
+                    break;
+                case SerializedPropertyType.AnimationCurve:
+                    try
+                    {
+                        // Format: key1|key2|...|keyN#preWrapMode#postWrapMode
+                        string[] sections = value.Split('#');
+                        string keysSection = sections[0];
+                        WrapMode preWrap = sections.Length > 1 ? (WrapMode)int.Parse(sections[1]) : WrapMode.ClampForever;
+                        WrapMode postWrap = sections.Length > 2 ? (WrapMode)int.Parse(sections[2]) : WrapMode.ClampForever;
+
+                        var keyframes = new List<Keyframe>();
+                        if (!string.IsNullOrEmpty(keysSection))
+                        {
+                            string[] keyStrings = keysSection.Split('|');
+                            foreach (string ks in keyStrings)
+                            {
+                                string[] parts = ks.Split(';');
+                                if (parts.Length >= 4)
+                                {
+                                    var kf = new Keyframe(
+                                        float.Parse(parts[0]),
+                                        float.Parse(parts[1]),
+                                        float.Parse(parts[2]),
+                                        float.Parse(parts[3])
+                                    );
+                                    if (parts.Length >= 7)
+                                    {
+                                        kf.inWeight = float.Parse(parts[4]);
+                                        kf.outWeight = float.Parse(parts[5]);
+                                        kf.weightedMode = (WeightedMode)int.Parse(parts[6]);
+                                    }
+                                    keyframes.Add(kf);
+                                }
+                            }
+                        }
+                        var newCurve = new AnimationCurve(keyframes.ToArray());
+                        newCurve.preWrapMode = preWrap;
+                        newCurve.postWrapMode = postWrap;
+                        prop.animationCurveValue = newCurve;
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogWarning($"[PhysBone Editor] Failed to deserialize AnimationCurve for '{prop.propertyPath}': {e.Message}");
                     }
                     break;
             }
