@@ -310,57 +310,18 @@ namespace GabSith.WFT
 
 
                                         GUIStyle style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
-                                        GUILayout.Label(EditorGUIUtility.IconContent("_Menu@2x"), style, GUILayout.Height(EditorGUIUtility.singleLineHeight),
-                                            GUILayout.Width(30), GUILayout.Height(40));
+                                        GUILayout.Label(EditorGUIUtility.IconContent("_Menu@2x"), style, GUILayout.Height(EditorGUIUtility.singleLineHeight), GUILayout.Width(30), GUILayout.Height(40));
 
 
                                         // Menu or otherwise button
-                                        //float width = Screen.width - 241f;
 
-                                        if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu) // If the control is a menu
+                                        if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu)
                                         {
                                             Color def = GUI.backgroundColor;
                                             GUI.backgroundColor = folderColor;
-                                            /*
-                                            using (var v = new EditorGUILayout.HorizontalScope("Button", GUILayout.MaxWidth(width), GUILayout.ExpandWidth(false)))
-                                            {
-                                                if (GUI.Button(v.rect, GUIContent.none) && control.subMenu != null)
-                                                    controlList.Add(control.subMenu); 
-                                                GUILayout.Label(control.icon, GUILayout.Height(35));
-                                                GUILayout.Label(control.name + " ➔");
-                                                GUILayout.Label(control.parameter.name);
-                                            }*/
+
                                             MenuButton(control);
-                                            /*
-                                            using (var horizontalScope = new EditorGUILayout.HorizontalScope(menuButtons, GUILayout.MaxWidth(width), GUILayout.ExpandWidth(false)))
-                                            {
-                                                bool isClicked = GUI.Button(horizontalScope.rect, "", GUIStyle.none);
 
-                                                GUILayout.Label(control.icon, menuButtonsIcon, GUILayout.Width(60), GUILayout.Height(35));
-                                                GUILayout.Label(control.name + " ➔", menuButtonsLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(10));
-
-                                                if (!string.IsNullOrEmpty(control.parameter.name))
-                                                {
-                                                    // Flexible space to push parameter to the right
-                                                    GUILayout.FlexibleSpace();
-
-                                                    Color defCol = GUI.color;
-                                                    GUI.color = new Color(1f, 1f, 1f, 0.6f);
-                                                    GUILayout.Label(control.parameter.name, menuButtonsParam, GUILayout.Width(80));
-                                                    GUI.color = defCol;
-                                                }
-                                                // Handle click event
-                                                if (isClicked && control.subMenu != null)
-                                                {
-                                                    controlList.Add(control.subMenu);
-                                                }
-                                            }             */                             
-                                            /*
-                                            if (GUILayout.Button(new GUIContent(control.name + " ➔", control.icon), menuButtons, GUILayout.MaxWidth(width)))
-                                            {
-                                                if (control.subMenu != null)
-                                                    controlList.Add(control.subMenu);
-                                            }*/
                                             CheckDragAndDrop(ref control.icon, ref control.subMenu, lastMenu);
                                             GUI.backgroundColor = def;
 
@@ -386,9 +347,6 @@ namespace GabSith.WFT
                                             }
 
                                             MenuButton(control);
-
-
-                                            //GUILayout.Button(new GUIContent(control.name, control.icon), menuButtons, GUILayout.MaxWidth(width));
 
                                             CheckDragAndDrop(ref control.icon, lastMenu);
 
@@ -447,7 +405,11 @@ namespace GabSith.WFT
 
                                 // Drag Position
                                 Rect dropArea = GUILayoutUtility.GetLastRect();
-                                if (e.type == EventType.MouseDown && dropArea.Contains(e.mousePosition))
+
+                                // Restrict drag start to the _Menu icon region only
+                                Rect dragHandle = new Rect(dropArea.x, dropArea.y, 35, dropArea.height);
+
+                                if (e.type == EventType.MouseDown && dragHandle.Contains(e.mousePosition))
                                 {
                                     currentlyDraggingItemIndex = i;
                                     EditorGUIUtility.SetWantsMouseJumping(1);

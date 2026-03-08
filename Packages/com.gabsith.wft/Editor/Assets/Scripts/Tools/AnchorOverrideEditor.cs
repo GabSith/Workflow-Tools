@@ -119,7 +119,6 @@ namespace GabSith.WFT
 
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Label("Set all to:", GUILayout.Width(70));
-                //newAnchor = EditorGUILayout.ObjectField(newAnchor, typeof(Transform), true) as Transform;
 
                 EditorGUILayout.PropertyField(_newAnchor, new GUIContent(""));
 
@@ -183,4 +182,4 @@ namespace GabSith.WFT
 
 }
 
-    #endif
+#endif

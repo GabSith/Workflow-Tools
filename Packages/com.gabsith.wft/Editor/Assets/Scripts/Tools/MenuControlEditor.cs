@@ -266,6 +266,10 @@ namespace GabSith.WFT
                             //control.value = EditorGUILayout.FloatField("Value", control.value);
                             control.value = EditorGUILayout.Slider("Value", control.value, -1, 1);
                         }
+                        else if (control.value != 1)
+                        {
+                            control.value = 1;
+                        }
                     }
 
 
@@ -646,50 +650,7 @@ namespace GabSith.WFT
 
             return text;
         }
-        /*
-        string ToggleColorTag(string text, Color color, bool remove = false)
-        {
-            string colorHex = ColorUtility.ToHtmlStringRGBA(color);
-            string openTag = $"<color=#{colorHex}>";
-            string closeTag = "</color>";
 
-            // Check if there is an existing color tag
-            int colorTagStart = text.IndexOf("<color=");
-            int colorTagEnd = text.IndexOf("</color>");
-
-
-            if (colorTagStart != -1 && colorTagEnd != -1)
-            {
-                if (remove)
-                {
-                    // Remove the existing color tag
-                    string beforeColor1 = text.Substring(0, colorTagStart);
-                    string insideColor1 = text.Substring(colorTagStart, colorTagEnd - colorTagStart + closeTag.Length);
-                    string afterColor1 = text.Substring(colorTagEnd + closeTag.Length);
-
-                    text = beforeColor1 + insideColor1.Substring(insideColor1.IndexOf(">") + 1) + afterColor1;
-                    return text;
-                }
-
-
-                // Remove the existing color tag
-                string beforeColor = text.Substring(0, colorTagStart);
-                string insideColor = text.Substring(colorTagStart, colorTagEnd - colorTagStart + closeTag.Length);
-                string afterColor = text.Substring(colorTagEnd + closeTag.Length);
-
-                // Replace existing color tag with the new one
-                text = beforeColor + openTag + insideColor.Substring(insideColor.IndexOf(">") + 1) + afterColor;
-            }
-            else
-            {
-                // Add new color tag
-                text = openTag + text + closeTag;
-            }
-
-
-            return text;
-        }
-        */
 
 
         VRCExpressionsMenu.Control.ControlType GetControlFromInt(int controlIndex)

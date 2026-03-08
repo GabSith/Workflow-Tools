@@ -12,9 +12,10 @@ namespace GabSith.WFT
 {
     public class ImageCreator : EditorWindow
     {
-        AnimBool showPreview = new AnimBool(false);
+        AnimBool showPreview = new AnimBool(true);
 
         private string screenshotName;
+        private bool overrideExisting = false;
         private int resolutionWidth = 256;
         private int resolutionHeight = 256;
         private float fieldOfView = 30f;
@@ -97,8 +98,9 @@ namespace GabSith.WFT
             CommonActions.GenerateTitle("Image Creator");
 
             screenshotName = EditorGUILayout.TextField("Name", screenshotName);
-            GUILayout.Label("Screenshot Settings", EditorStyles.boldLabel);
+            overrideExisting = EditorGUILayout.Toggle("Override Existing", overrideExisting);
 
+            GUILayout.Label("Screenshot Settings", EditorStyles.boldLabel);
 
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Icon"))
@@ -133,8 +135,12 @@ namespace GabSith.WFT
 
 
 
+            //EditorGUILayout.BeginHorizontal();
             EditorGUI.BeginChangeCheck();
+            //EditorGUILayout.LabelField("Width", GUILayout.Width(50));
             resolutionWidth = EditorGUILayout.IntField("Width", resolutionWidth);
+            //GUILayout.Space(10);
+            //EditorGUILayout.LabelField("Height", GUILayout.Width(50));
             resolutionHeight = EditorGUILayout.IntField("Height", resolutionHeight);
             if (EditorGUI.EndChangeCheck())
             {
@@ -148,10 +154,11 @@ namespace GabSith.WFT
                 }
                 UpdatePreviewTexture();
             }
+            //EditorGUILayout.EndHorizontal();
 
             fieldOfView = EditorGUILayout.Slider("Field of View", fieldOfView, 1f, 179f);
 
-            saveAsIcon = EditorGUILayout.Toggle("Save as icon", saveAsIcon);
+            saveAsIcon = EditorGUILayout.Toggle("Save as icon (Sprite)", saveAsIcon);
 
 
             GUILayout.Space(10);
@@ -183,12 +190,12 @@ namespace GabSith.WFT
             CommonActions.SelectFolder(ScreenshotUseGlobalKey, ScreenshotFolderKey, ScreenshotFolderSuffixKey, ref suffix);
 
             GUILayout.Space(10);
-            showPreview.target = EditorGUILayout.Toggle("Show Preview", showPreview.target);
-
-            if (showPreview.target)
+            //showPreview.target = EditorGUILayout.Toggle("Show Preview", showPreview.target);
+            if (CommonActions.ToggleButton("Show Preview", showPreview.target))
             {
-
+                showPreview.target = !showPreview.target;
             }
+
 
             using (var group = new EditorGUILayout.FadeGroupScope(showPreview.faded))
             if (group.visible && isVisible)
@@ -479,12 +486,16 @@ namespace GabSith.WFT
             string filename;
             if (!string.IsNullOrEmpty(screenshotName))
             {
-                filename = screenshotName + ".png";
+                //filename = screenshotName + ".png";
+                filename = overrideExisting ? screenshotName + ".png" : GetUniqueFilename(screenshotName);
             }
             else
             {
-                filename = $"Screenshot_{System.DateTime.Now:yyyyMMdd_HHmmss}.png";
+                filename = overrideExisting ? $"Screenshot_{System.DateTime.Now:yyyyMMdd_HHmmss}.png" : GetUniqueFilename($"Screenshot_{System.DateTime.Now:yyyyMMdd_HHmmss}");
             }
+
+            
+
             Directory.CreateDirectory(GetFolder());
             File.WriteAllBytes(Path.Combine(GetFolder(), filename), bytes);
 
@@ -548,6 +559,30 @@ namespace GabSith.WFT
             {
                 camera.clearFlags = CameraClearFlags.SolidColor;
                 camera.backgroundColor = backgroundColor;
+            }
+        }
+
+        private string GetUniqueFilename(string baseName)
+        {
+            string folder = GetFolder();
+            string filename = baseName + ".png";
+            string fullPath = Path.Combine(folder, filename);
+
+            if (!File.Exists(fullPath))
+            {
+                return filename;
+            }
+
+            int counter = 1;
+            while (true)
+            {
+                filename = $"{baseName} {counter}.png";
+                fullPath = Path.Combine(folder, filename);
+                if (!File.Exists(fullPath))
+                {
+                    return filename;
+                }
+                counter++;
             }
         }
 
