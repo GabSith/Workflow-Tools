@@ -63,7 +63,7 @@ namespace GabSith.WFT
         private Rect _exprHdrName, _exprHdrType, _exprHdrDefault, _exprHdrSaved, _exprHdrSynced, _exprHdrClone, _exprHdrDelete;
         private Rect _ctrlHdrName, _ctrlHdrType, _ctrlHdrDefault, _ctrlHdrClone, _ctrlHdrDelete;
 
-        GUIStyle tableHeaderStyle;
+        //GUIStyle tableHeaderStyle;
         float typeWidth = 50f;
         float defaultWidth = 40f;
         float savedWidth = 40f;
@@ -103,12 +103,6 @@ namespace GabSith.WFT
 
         private void OnGUI()
         {
-            if (tableHeaderStyle == null)
-            {
-                tableHeaderStyle = new GUIStyle(EditorStyles.label);
-                tableHeaderStyle.fontSize = 11;
-            }
-
             GUI.SetNextControlName("NotText");
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
@@ -563,6 +557,11 @@ namespace GabSith.WFT
                     float lh = EditorGUIUtility.singleLineHeight;
                     float ly = sr.y + (stickyHeaderH - lh) * 0.5f;
 
+                    GUIStyle tableHeaderStyle = new GUIStyle(EditorStyles.label)
+                    {
+                        fontSize = 11
+                    };
+
                     GUI.Label(new Rect(_exprHdrName.x,    ly, _exprHdrName.width,    lh), "Name",    tableHeaderStyle);
                     GUI.Label(new Rect(_exprHdrType.x,    ly, _exprHdrType.width,    lh), "Type",    tableHeaderStyle);
                     GUI.Label(new Rect(_exprHdrDefault.x, ly, _exprHdrDefault.width, lh), "Default", tableHeaderStyle);
@@ -827,6 +826,11 @@ namespace GabSith.WFT
 
                     float lh = EditorGUIUtility.singleLineHeight;
                     float ly = sr.y + (stickyHeaderH - lh) * 0.5f;
+
+                    GUIStyle tableHeaderStyle = new GUIStyle(EditorStyles.label)
+                    {
+                        fontSize = 11
+                    };
 
                     GUI.Label(new Rect(_ctrlHdrName.x,    ly, _ctrlHdrName.width,    lh), "Name",    tableHeaderStyle);
                     GUI.Label(new Rect(_ctrlHdrType.x,    ly, _ctrlHdrType.width,    lh), "Value",   tableHeaderStyle);
