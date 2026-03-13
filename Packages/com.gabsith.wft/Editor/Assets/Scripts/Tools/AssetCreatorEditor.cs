@@ -144,10 +144,17 @@ namespace GabSith.WFT
                 GUIStyle pathLabelStyle = new GUIStyle(EditorStyles.miniLabel) { wordWrap = true };
                 string selectedFolder = GetSelectedFolderInProject();
                 EditorGUILayout.LabelField("Selected: " + (selectedFolder ?? "None"), pathLabelStyle);
+                if (selectedFolder == null)
+                {
+                    // Folder selection
+                    CommonActions.SelectFolder(AssetCreatorUseGlobalKey, AssetCreatorFolderKey, AssetCreatorFolderSuffixKey, ref suffix);
+                }
             }
-
-            // Folder selection
-            CommonActions.SelectFolder(AssetCreatorUseGlobalKey, AssetCreatorFolderKey, AssetCreatorFolderSuffixKey, ref suffix);
+            else
+            {
+                // Folder selection
+                CommonActions.SelectFolder(AssetCreatorUseGlobalKey, AssetCreatorFolderKey, AssetCreatorFolderSuffixKey, ref suffix);
+            }
 
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();

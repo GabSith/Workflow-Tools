@@ -23,7 +23,7 @@ namespace GabSith.WFT
 
         string[] valueTypeOptions = new string[3] { "Int", "Float", "Bool" };
 
-        VRCExpressionParameters.Parameter newParameter = new VRCExpressionParameters.Parameter { };
+        VRCExpressionParameters.Parameter newParameter = new VRCExpressionParameters.Parameter { valueType = VRCExpressionParameters.ValueType.Bool };
 
         string[] selectedConvModes = new string[6] { "Expression", "FX", "Gesture", "Action", "Base", "Additive" };
 

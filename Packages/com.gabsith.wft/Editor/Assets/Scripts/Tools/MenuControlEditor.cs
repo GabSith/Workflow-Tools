@@ -58,7 +58,7 @@ namespace GabSith.WFT
 
         bool[] newParameterBools = new bool[5] { false, false, false, false, false };
 
-        VRCExpressionParameters.Parameter newParameter = new VRCExpressionParameters.Parameter { };
+        VRCExpressionParameters.Parameter newParameter = new VRCExpressionParameters.Parameter { valueType = VRCExpressionParameters.ValueType.Bool };
 
         string[] selectedConvModes = new string[6] { "Expression", "FX", "Gesture", "Action", "Base", "Additive" };
 
@@ -258,18 +258,15 @@ namespace GabSith.WFT
                     if (avatarAvailable && valueTypes.Count != expressionParameters.parameters.Length)
                     {
                         if (valueTypes[selectedParameter] == VRCExpressionParameters.ValueType.Int)
-                        {
                             control.value = EditorGUILayout.IntField("Value", (int)control.value);
-                        }
+                        
                         else if (valueTypes[selectedParameter] == VRCExpressionParameters.ValueType.Float)
-                        {
-                            //control.value = EditorGUILayout.FloatField("Value", control.value);
                             control.value = EditorGUILayout.Slider("Value", control.value, -1, 1);
-                        }
-                        else if (control.value != 1)
-                        {
-                            control.value = 1;
-                        }
+
+                        else if (!containsNewOne[0])
+                            control.value = EditorGUILayout.FloatField("Value", control.value);
+                        
+                        else if (control.value != 1) control.value = 1;
                     }
 
 
@@ -911,6 +908,7 @@ namespace GabSith.WFT
 
                         items.Add(copy);
                         avatarDescriptor.expressionParameters.parameters = items.ToArray();
+                        EditorUtility.SetDirty(avatarDescriptor.expressionParameters);
                     }
 
                     if (globalCreationBools[1]) // FX Selected
@@ -1026,6 +1024,7 @@ namespace GabSith.WFT
 
                 itemsController.Add(newControllerParameter);
                 ((AnimatorController)avatarDescriptor.baseAnimationLayers[controllerIndex].animatorController).parameters = itemsController.ToArray();
+                EditorUtility.SetDirty(animatorController);
             }
             else
             {
