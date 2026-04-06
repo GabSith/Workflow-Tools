@@ -254,6 +254,7 @@ namespace GabSith.WFT
             switch (prop.propertyType)
             {
                 case SerializedPropertyType.Integer: return prop.intValue.ToString();
+                case SerializedPropertyType.ArraySize: return prop.intValue.ToString();
                 case SerializedPropertyType.Boolean: return prop.boolValue.ToString();
                 case SerializedPropertyType.Float: return prop.floatValue.ToString();
                 case SerializedPropertyType.String: return prop.stringValue;
@@ -267,17 +268,31 @@ namespace GabSith.WFT
                 case SerializedPropertyType.Enum: return prop.enumValueIndex.ToString();
                 case SerializedPropertyType.ObjectReference:
                     if (prop.objectReferenceValue == null) return "null";
-                    // For Transforms and GameObjects within the avatar hierarchy, store the path
+                    // Store hierarchy path + type info so we can restore the correct component
                     Transform refTransform = null;
+                    string refType = null;
+                    int refSiblingIndex = 0;
                     if (prop.objectReferenceValue is Transform t)
+                    {
                         refTransform = t;
+                        refType = "Transform";
+                    }
                     else if (prop.objectReferenceValue is GameObject go)
+                    {
                         refTransform = go.transform;
+                        refType = "GameObject";
+                    }
                     else if (prop.objectReferenceValue is Component comp)
+                    {
                         refTransform = comp.transform;
+                        refType = comp.GetType().AssemblyQualifiedName;
+                        var siblings = comp.gameObject.GetComponents(comp.GetType());
+                        refSiblingIndex = System.Array.IndexOf(siblings, comp);
+                    }
                     if (refTransform != null && selectedAvatar != null && refTransform.IsChildOf(selectedAvatar.transform))
                     {
-                        return "path:" + AnimationUtility.CalculateTransformPath(refTransform, selectedAvatar.transform);
+                        string refPath = AnimationUtility.CalculateTransformPath(refTransform, selectedAvatar.transform);
+                        return $"ref:{refType}:{refSiblingIndex}:{refPath}";
                     }
                     // Can't serialize this reference (e.g. MonoScript, Material) - skip it
                     return "";
@@ -301,6 +316,7 @@ namespace GabSith.WFT
             switch (prop.propertyType)
             {
                 case SerializedPropertyType.Integer: prop.intValue = int.Parse(value); break;
+                case SerializedPropertyType.ArraySize: prop.intValue = int.Parse(value); break;
                 case SerializedPropertyType.Boolean: prop.boolValue = bool.Parse(value); break;
                 case SerializedPropertyType.Float: prop.floatValue = float.Parse(value); break;
                 case SerializedPropertyType.String: prop.stringValue = value; break;
@@ -317,8 +333,42 @@ namespace GabSith.WFT
                     {
                         prop.objectReferenceValue = null;
                     }
+                    else if (value.StartsWith("ref:") && selectedAvatar != null)
+                    {
+                        // Format: ref:TypeName:SiblingIndex:HierarchyPath
+                        string[] refParts = value.Substring(4).Split(new[] { ':' }, 3);
+                        if (refParts.Length >= 3)
+                        {
+                            string refType = refParts[0];
+                            int refSiblingIndex = int.Parse(refParts[1]);
+                            string refPath = refParts[2];
+                            Transform found = string.IsNullOrEmpty(refPath)
+                                ? selectedAvatar.transform
+                                : selectedAvatar.transform.Find(refPath);
+                            if (found != null)
+                            {
+                                if (refType == "Transform")
+                                    prop.objectReferenceValue = found;
+                                else if (refType == "GameObject")
+                                    prop.objectReferenceValue = found.gameObject;
+                                else
+                                {
+                                    System.Type compType = System.Type.GetType(refType);
+                                    if (compType != null)
+                                    {
+                                        var comps = found.gameObject.GetComponents(compType);
+                                        if (refSiblingIndex >= 0 && refSiblingIndex < comps.Length)
+                                            prop.objectReferenceValue = comps[refSiblingIndex];
+                                        else if (comps.Length > 0)
+                                            prop.objectReferenceValue = comps[0];
+                                    }
+                                }
+                            }
+                        }
+                    }
                     else if (value.StartsWith("path:") && selectedAvatar != null)
                     {
+                        // Backward compatibility with old format
                         string path = value.Substring(5);
                         Transform found = string.IsNullOrEmpty(path)
                             ? selectedAvatar.transform
@@ -611,7 +661,7 @@ namespace GabSith.WFT
                     }
 
                     // Paste buttons are only valid when clipboard has data
-                    bool hasClipboard = clipboardSerializedData != null && clipboardSerializedData.Count > 0;
+                    bool hasClipboard = hasClipboardData;
 
                     // Regular Paste is also disabled during play mode (root transform can't be changed)
                     using (new EditorGUI.DisabledScope(!hasClipboard))
@@ -770,7 +820,7 @@ namespace GabSith.WFT
         }
 
         private string clipboardSourcePath = null;
-        private Dictionary<string, string> clipboardSerializedData = new Dictionary<string, string>();
+        private bool hasClipboardData = false;
 
         private void CopySelectedSettings()
         {
@@ -778,28 +828,15 @@ namespace GabSith.WFT
 
             var source = new List<VRCPhysBone>(selectedPhysBones)[0];
             clipboardSourcePath = GetStableKey(source);
-            SerializedObject so = new SerializedObject(source);
-            clipboardSerializedData.Clear();
+            hasClipboardData = UnityEditorInternal.ComponentUtility.CopyComponent(source);
 
-            SerializedProperty prop = so.GetIterator();
-            while (prop.NextVisible(true))
-            {
-                // Skip internal properties that must never be overwritten
-                if (prop.propertyPath == "m_Script")
-                    continue;
-                if (prop.propertyType == SerializedPropertyType.Generic)
-                    continue;
-
-                string serialized = $"{(int)prop.propertyType}|{SerializeValue(prop)}";
-                clipboardSerializedData[prop.propertyPath] = serialized;
-            }
-
-            Debug.Log($"[PhysBone Editor] Copied settings from: {source.gameObject.name}");
+            if (hasClipboardData)
+                Debug.Log($"[PhysBone Editor] Copied settings from: {source.gameObject.name}");
         }
 
         private void PasteSettings(bool keepRootTransform)
         {
-            if (clipboardSerializedData == null || clipboardSerializedData.Count == 0)
+            if (!hasClipboardData)
             {
                 Debug.LogWarning("[PhysBone Editor] No settings in clipboard.");
                 return;
@@ -812,26 +849,30 @@ namespace GabSith.WFT
                 // Skip pasting onto the source itself
                 if (clipboardSourcePath != null && GetStableKey(pb) == clipboardSourcePath) continue;
 
-                SerializedObject so = new SerializedObject(pb);
-
-                foreach (var kvp in clipboardSerializedData)
+                // Save root transform before paste overwrites it
+                Object savedRoot = null;
+                if (keepRootTransform)
                 {
-                    if (keepRootTransform && kvp.Key == "rootTransform")
-                        continue;
+                    SerializedObject soBefore = new SerializedObject(pb);
+                    var rootProp = soBefore.FindProperty("rootTransform");
+                    if (rootProp != null)
+                        savedRoot = rootProp.objectReferenceValue;
+                }
 
-                    SerializedProperty prop = so.FindProperty(kvp.Key);
-                    if (prop != null)
+                UnityEditorInternal.ComponentUtility.PasteComponentValues(pb);
+
+                // Restore root transform if requested
+                if (keepRootTransform)
+                {
+                    SerializedObject soAfter = new SerializedObject(pb);
+                    var rootProp = soAfter.FindProperty("rootTransform");
+                    if (rootProp != null)
                     {
-                        // Parse the serialized data: "propertyType|serializedValue"
-                        string[] parts = kvp.Value.Split(new[] { '|' }, 2);
-                        if (parts.Length == 2)
-                        {
-                            DeserializeValue(prop, parts[1]);
-                        }
+                        rootProp.objectReferenceValue = savedRoot;
+                        soAfter.ApplyModifiedProperties();
                     }
                 }
 
-                so.ApplyModifiedProperties();
                 EditorUtility.SetDirty(pb);
                 count++;
             }

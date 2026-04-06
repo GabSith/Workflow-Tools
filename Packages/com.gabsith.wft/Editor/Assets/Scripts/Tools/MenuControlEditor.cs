@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 
 using UnityEditor;
 using UnityEngine;
@@ -101,11 +101,46 @@ namespace GabSith.WFT
         private void OnDestroy()
         {
             //MakeSureItDoesTheThing(menu);
-            EditorUtility.SetDirty(menu);
+            if (menu != null)
+                EditorUtility.SetDirty(menu);
         }
 
         void OnGUI()
         {
+            // Close on Escape
+            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+            {
+                Close();
+                GUIUtility.ExitGUI();
+                return;
+            }
+
+            // Validate that the control still exists
+            if (menu == null || string.IsNullOrEmpty(AssetDatabase.GetAssetPath(menu)))
+            {
+                Close();
+                GUIUtility.ExitGUI();
+                return;
+            }
+
+            menu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(AssetDatabase.GetAssetPath(menu));
+
+            if (menu == null || menu.controls == null || menuIndex < 0 || menuIndex >= menu.controls.Count)
+            {
+                Close();
+                GUIUtility.ExitGUI();
+                return;
+            }
+
+            control = menu.controls[menuIndex];
+
+            if (control == null)
+            {
+                Close();
+                GUIUtility.ExitGUI();
+                return;
+            }
+
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.ExpandHeight(false), GUILayout.ExpandWidth(false));
@@ -122,11 +157,7 @@ namespace GabSith.WFT
 
 
 
-            if (AssetDatabase.GetAssetPath(menu) != null)
             {
-                menu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(AssetDatabase.GetAssetPath(menu));
-
-                control = menu.controls[menuIndex];
 
 
                 if (control != null)
@@ -586,10 +617,6 @@ namespace GabSith.WFT
                         }
                     }
 
-                }
-                else
-                {
-                    Debug.LogError("Control is null");
                 }
             }
 
