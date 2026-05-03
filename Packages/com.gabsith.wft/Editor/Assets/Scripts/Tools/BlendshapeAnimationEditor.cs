@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 
 using UnityEditor;
 using UnityEngine;
@@ -16,6 +16,8 @@ namespace GabSith.WFT
     public class BlendshapeAnimationEditor : EditorWindow
     {
         string animationName;
+        bool autoNaming = true;
+        int previousActiveCount = 0;
 
         bool useExistingAnimation = false;
         AnimationClip existingAnimation;
@@ -256,6 +258,32 @@ namespace GabSith.WFT
             }
             else
             {
+                // Auto naming
+                int currentActiveCount = 0;
+                int firstActiveIndex = -1;
+                if (isBlendShapeActive != null)
+                {
+                    for (int i = 0; i < isBlendShapeActive.Length; i++)
+                    {
+                        if (isBlendShapeActive[i])
+                        {
+                            currentActiveCount++;
+                            if (firstActiveIndex < 0) firstActiveIndex = i;
+                        }
+                    }
+                }
+
+                if (autoNaming && previousActiveCount == 0 && currentActiveCount > 0 && firstActiveIndex >= 0 && blendShapeNames != null && firstActiveIndex < blendShapeNames.Length)
+                {
+                    animationName = blendShapeNames[firstActiveIndex];
+                }
+                previousActiveCount = currentActiveCount;
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    autoNaming = EditorGUILayout.ToggleLeft("Auto Naming", autoNaming, GUILayout.Width(110f));
+                    if (!autoNaming) GUI.enabled = true;
+                }
                 animationName = EditorGUILayout.TextField("Animation Name", animationName);
 
                 EditorGUILayout.Space(10);

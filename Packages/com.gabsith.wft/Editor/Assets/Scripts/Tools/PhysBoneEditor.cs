@@ -71,7 +71,7 @@ namespace GabSith.WFT
         public static void ShowWindow()
         {
             EditorWindow w = EditorWindow.GetWindow(typeof(PhysBoneEditor), false, "PhysBone Editor");
-            w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_RelativeJoint2D Icon").image, text = "PhysBone Editor", tooltip = "Edit PhysBones" };
+            w.titleContent = new GUIContent { image = EditorGUIUtility.IconContent("d_RelativeJoint2D Icon").image, text = "PhysBone Editor", tooltip = "♥" };
             w.minSize = new Vector2(300, 400);
         }
 
